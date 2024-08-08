@@ -1,37 +1,36 @@
-import java.util.BitSet;
+
 
 public class BoardState {
     // BoardState is a wrapper class for the 8 bitboards which collectively represent the state of the game.
 
-    public BitSet pawn;
-    public BitSet knight;
-    public BitSet bishop;
-    public BitSet rook;
-    public BitSet queen;
-    public BitSet king;
-    public BitSet color;
-    public BitSet occupied;
+    protected long pawn;
+    protected long knight;
+    protected long bishop;
+    protected long rook;
+    protected long queen;
+    protected long king;
+    protected long white;
+    protected long black;
     public BoardState(){
         initializeBoardState();
     }
     private void initializeBoardState(){
-        occupied = new BitSet(64);
-        color = new BitSet(64);
-        pawn = new BitSet(64);
-        knight = new BitSet(64);
-        bishop = new BitSet(64);
-        rook = new BitSet(64);
-        queen = new BitSet(64);
-        king = new BitSet(64);
+        white = 0b0000000000000000000000000000000000000000000000001111111111111111L;
+        black = 0b1111111111111111000000000000000000000000000000000000000000000000L;
+        pawn = 0b0000000011111111000000000000000000000000000000001111111100000000L;
 
-        for(int i=0;i<16;i++){ occupied.set(i); color.set(i);}
-        for(int i=48;i<64;i++){ occupied.set(i); } // color set to 0 by default
+        knight = 0b0100001000000000000000000000000000000000000000000000000001000010L;
+        bishop = 0b0010010000000000000000000000000000000000000000000000000000100100L;
+        rook = 0b1000000100000000000000000000000000000000000000000000000010000001L;
 
-        for(int i=48;i<56;i++){ pawn.set(i); } for(int i=8;i<16;i++){ pawn.set(i); }
+        queen = 0b0000100000000000000000000000000000000000000000000000000000001000L;
+        king = 0b0001000000000000000000000000000000000000000000000000000000010000L;
 
-        knight.set(1);knight.set(6);knight.set(57);knight.set(62);
-        bishop.set(2);bishop.set(5);bishop.set(58);bishop.set(61);
-        rook.set(1);rook.set(7);rook.set(56);rook.set(63);
-        queen.set(3);queen.set(59);king.set(4);king.set(60);
     }
+//    public static int LS1B(BitSet bb){
+//        return 0;
+//    }
+//    public static int MS1B(BitSet bb){
+//        return 0;
+//    }
 }

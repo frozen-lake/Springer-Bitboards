@@ -1,15 +1,27 @@
+
+
+
 public class Chess {
-    Board gameBoard;
-    public void playSelf(){
-        gameBoard = new Board();
+    private final Board gameBoard;
+    protected boolean turn;
+
+    public Chess(){
+        gameBoard = new Board(); turn = true;
+    }
+    public void playSelfW(){
+        while(true){
+            if(turn){
+
+            } else {
+
+            }
+        }
     }
     public static void main(String[] args){
-        int pb = 0b00010100;
-        System.out.println(Integer.toBinaryString(pb));
-        System.out.println(Integer.toBinaryString(pb << 1));
-        System.out.println(Integer.toBinaryString(pb));
-        System.out.println(Integer.toBinaryString(pb >> 1));
-        System.out.println(Integer.toBinaryString(pb));
+        Chess c = new Chess();
+        Board b = c.gameBoard;
+        ChessData cd = new ChessData();
 
+        c.playSelfW();
     }
 }
