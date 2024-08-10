@@ -7,8 +7,8 @@ public class ChessData {
     // Maps occupancy rows/columns/diagonals to attack maps for sliding pieces such as rooks, bishops and queens (RBQs.)
     public HashMap<Integer, Long> lurd; // Left/Up and Right/Down diagonal === \ ===
     public HashMap<Integer, Long> ruld; // Right/Up and Left/Down Diagonal === / ===
-    public HashMap<Integer, Long> horizontal; // === -- ===
-    public HashMap<Integer, Long> vertical; // === | ===
+    public HashMap<Integer, Long> rows; // === -- ===
+    public HashMap<Integer, Long> columns; // === | ===
 
     public ChessData(){
         occupancyTable = new HashMap<Integer, HashMap<Byte, Byte>>();
@@ -46,7 +46,7 @@ public class ChessData {
 
             // Calculate attack rows for each key
             for(byte key: keys){
-                if(((key>>i) & 1)==0){ // ignore key if the spot our piece is in is not occupied
+                if(((key>>(i)) & 1)==0){ // ignore key if the spot our piece is in is not occupied
                     continue;
                 }
 
@@ -105,39 +105,56 @@ public class ChessData {
     }
     private void generateStraights(){
 
-        horizontal = new HashMap<Integer, Long>();
-        vertical = new HashMap<Integer, Long>();
+        rows = new HashMap<Integer, Long>();
+        columns = new HashMap<Integer, Long>();
 
-        for(int i=0;i<64;i++){
-            long bb = (1L << i); // Initialize bit at position i to 1
-
-            // rook moving up
-            int numberOfMoves = 7 - (i / 8); int pos = i;
-            for(int j=0;j<numberOfMoves;j++){
-                pos += 8; bb |= (1L << pos);
-            }
-
-            // rook moving down
-            numberOfMoves = i / 8; pos = i;
-            for(int j=0;j<numberOfMoves;j++){
-                pos -= 8; bb |= (1L << pos);
-            }
-            vertical.put(i, bb); bb = (1L << i);
-
-            // rook moving right
-            numberOfMoves = 7 - (i % 8); pos = i;
-            for(int j=0;j<numberOfMoves;j++){
-                pos -= 8; bb |= (1L << pos);
-            }
-
-            // rook moving left
-            numberOfMoves = i % 8; pos = i;
-            for(int j=0;j<numberOfMoves;j++){
-                pos += 8; bb |= (1L << pos);
-            }
-            horizontal.put(i, bb);
-
-        }
+        rows.put(0, 0b0000000000000000000000000000000000000000000000000000000011111111L);
+        rows.put(1, 0b0000000000000000000000000000000000000000000000001111111100000000L);
+        rows.put(2, 0b0000000000000000000000000000000000000000111111110000000000000000L);
+        rows.put(3, 0b0000000000000000000000000000000011111111000000000000000000000000L);
+        rows.put(4, 0b0000000000000000000000001111111100000000000000000000000000000000L);
+        rows.put(5, 0b0000000000000000111111110000000000000000000000000000000000000000L);
+        rows.put(6, 0b0000000011111111000000000000000000000000000000000000000000000000L);
+        rows.put(7, 0b1111111100000000000000000000000000000000000000000000000000000000L);
+        columns.put(0, 0b1000000010000000100000001000000010000000100000001000000010000000L);
+        columns.put(1, 0b0100000001000000010000000100000001000000010000000100000001000000L);
+        columns.put(2, 0b0010000000100000001000000010000000100000001000000010000000100000L);
+        columns.put(3, 0b0001000000010000000100000001000000010000000100000001000000010000L);
+        columns.put(4, 0b0000100000001000000010000000100000001000000010000000100000001000L);
+        columns.put(5, 0b0000010000000100000001000000010000000100000001000000010000000100L);
+        columns.put(6, 0b0000001000000010000000100000001000000010000000100000001000000010L);
+        columns.put(7, 0b0000000100000001000000010000000100000001000000010000000100000001L);
+//
+//        for(int i=0;i<64;i++){
+//            long bb = (1L << i); // Initialize bit at position i to 1
+//
+//            // rook moving up
+//            int numberOfMoves = 7 - (i / 8); int pos = i;
+//            for(int j=0;j<numberOfMoves;j++){
+//                pos += 8; bb |= (1L << pos);
+//            }
+//
+//            // rook moving down
+//            numberOfMoves = i / 8; pos = i;
+//            for(int j=0;j<numberOfMoves;j++){
+//                pos -= 8; bb |= (1L << pos);
+//            }
+//            columns.put(i, bb); bb = (1L << i);
+//
+//            // rook moving right
+//            numberOfMoves = 7 - (i % 8); pos = i;
+//            for(int j=0;j<numberOfMoves;j++){
+//                pos -= 8; bb |= (1L << pos);
+//            }
+//
+//            // rook moving left
+//            numberOfMoves = i % 8; pos = i;
+//            for(int j=0;j<numberOfMoves;j++){
+//                pos += 8; bb |= (1L << pos);
+//            }
+//            rows.put(i, bb);
+//
+//        }
     }
 
 }

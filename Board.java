@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -5,12 +6,15 @@ public class Board {
 
     private final Chess game;
     protected BoardState state; // bitboards
-    protected long ATKFR; // attack-from bitboard (which squares does this piece attack? if no piece, all 0s)
-    protected long ATKTO; // attack-to bitboard (which pieces attack this square?)
+    protected ArrayList<Long> ATKFR; // attack-from bitboard (which squares does this piece attack? if no piece, all 0s)
+    protected ArrayList<Long> ATKTO; // attack-to bitboard (which pieces attack this square?)
     private boolean turnToMove;
     public Board(Chess chess){
         game = chess;
-        ATKFR = 0L; ATKTO = 0L;
+        ATKFR = new ArrayList<Long>(); ATKTO = new ArrayList<Long>();
+        for(int i=0;i<64;i++){ATKFR.add(0L); ATKTO.add(0L);}
+
+
         state = new BoardState();
         generateMoves();
     }
@@ -36,8 +40,15 @@ public class Board {
             pieces ^= (pieces & -pieces); // Pop least significant bit
 
             // Generate occupancy row and column
-            byte occ = 0x0;
-            // game.data.horizontal.get();
+            byte occ = 0x0; // occupancy key for attack map indexing
+
+            // intersect occupancy bitboard with row to get occupancy row, then shift to convert to a byte
+            occ = (byte) (((state.white|state.black) & game.data.rows.get(pos / 8)) << ((pos / 8))*8);
+
+            occ = game.data.occupancyTable.get(pos % 8).get(occ); // convert occupancy byte to attack byte
+
+            ATKFR.set(pos, ATKFR.get(pos) | ((long) occ) << ((pos / 8) * 8)); // Combine ATKFR[pos] with the attack byte shifted to the correct row
+
         }
 
 
