@@ -3,12 +3,16 @@ import java.util.List;
 
 public class Board {
 
+    private final Chess game;
     protected BoardState state; // bitboards
     protected long ATKFR; // attack-from bitboard (which squares does this piece attack? if no piece, all 0s)
     protected long ATKTO; // attack-to bitboard (which pieces attack this square?)
-    public Board(){
+    private boolean turnToMove;
+    public Board(Chess chess){
+        game = chess;
+        ATKFR = 0L; ATKTO = 0L;
         state = new BoardState();
-        printBoard();
+        generateMoves();
     }
 
     public void makeMove(int move){
@@ -16,6 +20,29 @@ public class Board {
     }
     public void undoMove(int move){
 
+    }
+
+    public MoveList generateMoves(){
+        MoveList list = new MoveList();
+        long colorBB = turnToMove ? state.white : state.black;
+
+        // Rook moves
+
+        long pieces = state.rook & colorBB; // the piece we are generating for
+        long piece;
+
+        while(pieces != 0L){
+            int pos = Long.numberOfTrailingZeros(pieces); // Position of least significant bit (piece)
+            pieces ^= (pieces & -pieces); // Pop least significant bit
+
+            // Generate occupancy row and column
+            byte occ = 0x0;
+            // game.data.horizontal.get();
+        }
+
+
+
+        return list;
     }
 
     public void printBoard(){
@@ -40,6 +67,8 @@ public class Board {
         }
         System.out.println("    a   b   c   d   e   f   g   h");
     }
+
+
 
     public static int positionToInt(String pos){
         if(pos.length() > 2) return -1;
