@@ -5,14 +5,15 @@ import java.util.List;
 public class Board {
 
     private final Chess game;
+    public static final ChessData data = new ChessData();
     protected BoardState state; // bitboards
-    protected ArrayList<Long> ATKFR; // attack-from bitboard (which squares does this piece attack? if no piece, all 0s)
-    protected ArrayList<Long> ATKTO; // attack-to bitboard (which pieces attack this square?)
+    protected long[] ATKFR; // attack-from bitboard (which squares does this piece attack? if no piece, all 0s)
+    protected long[] ATKTO; // attack-to bitboard (which pieces attack this square?)
     private boolean turnToMove;
     public Board(Chess chess){
-        game = chess;
-        ATKFR = new ArrayList<Long>(); ATKTO = new ArrayList<Long>();
-        for(int i=0;i<64;i++){ATKFR.add(0L); ATKTO.add(0L);}
+        game = chess; turnToMove = true;
+        ATKFR = new long[64]; ATKTO = new long[64];
+        for(int i=0;i<64;i++){ATKFR[i] = 0L; ATKTO[i] = 0L;}
 
 
         state = new BoardState();
@@ -24,6 +25,12 @@ public class Board {
     }
     public void undoMove(int move){
 
+    }
+    public static long occToAttackRowBB(byte occ, int pos){
+        return (((((long)(data.occupancyTable.get(pos % 8).get(occ)))&0b11111111L)) << 8*(pos/8))&data.rows.get(pos/8);
+    }
+    public static long occToAttackColBB(byte occ, int pos){
+        return (((((long)(data.occupancyTable.get(7-(pos/8)).get(occ)))&0b11111111L) * data.ruld.get(0)) >> (7-(pos%8)))&data.columns.get(pos%8);
     }
 
     public MoveList generateMoves(){
@@ -39,15 +46,21 @@ public class Board {
             int pos = Long.numberOfTrailingZeros(pieces); // Position of least significant bit (piece)
             pieces ^= (pieces & -pieces); // Pop least significant bit
 
-            // Generate occupancy row and column
-            byte occ = 0x0; // occupancy key for attack map indexing
+            // Generate occupancy byte
+            byte occ = (byte) (((state.white|state.black) & data.rows.get(pos / 8)) >> ((pos / 8))*8); // occupancy key for attack map indexing
 
-            // intersect occupancy bitboard with row to get occupancy row, then shift to convert to a byte
-            occ = (byte) (((state.white|state.black) & game.data.rows.get(pos / 8)) << ((pos / 8))*8);
+            // Index occupancyTable with occ and add that bitboard to ATKFR[pos]
+            ATKFR[pos] |= occToAttackRowBB(occ, pos);
 
-            occ = game.data.occupancyTable.get(pos % 8).get(occ); // convert occupancy byte to attack byte
 
-            ATKFR.set(pos, ATKFR.get(pos) | ((long) occ) << ((pos / 8) * 8)); // Combine ATKFR[pos] with the attack byte shifted to the correct row
+            occ = (byte) (((((state.white|state.black)&data.columns.get(pos%8))>>pos%8) * (data.ruld.get(0))) >> (8*7));
+//
+//            System.out.println("==="+pos+"\n"+Integer.toBinaryString((occ)&0b11111111));
+//            System.out.println("==="+pos+"\n"+Integer.toBinaryString(data.occupancyTable.get(7-(pos/8)).get(occ) & 0b11111111));
+            //System.out.println("==="+pos+"f\n"+Chess.formatBitboard((((long)(data.occupancyTable.get(7-(pos/8)).get(occ))))));
+            //System.out.println("==="+pos+"f\n"+Chess.formatBitboard((((long)(data.occupancyTable.get(7-(pos/8)).get(occ)))) * data.ruld.get(0)));
+            //System.out.println("===abb"+pos+"\n"+Chess.formatBitboard(occToAttackColBB(occ, pos)));
+            ATKFR[pos] |= occToAttackColBB(occ, pos);
 
         }
 

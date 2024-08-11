@@ -2,15 +2,15 @@
 
 
 public class Chess {
-    private final Board gameBoard;
+    protected final Board gameBoard;
     protected boolean turn;
-    protected ChessData data;
 
     public Chess(){
-        gameBoard = new Board(this); turn = true;
-        data = new ChessData();
+        turn = true;
+        gameBoard = new Board(this);
     }
     public void playSelfW(){
+        //gameBoard.printBoard();
         while(true){
             if(turn){
 
@@ -37,6 +37,7 @@ public class Chess {
         Chess c = new Chess();
         Board b = c.gameBoard;
 
-        //c.playSelfW();
+        System.out.println(Chess.formatBitboard(b.ATKFR[46]));
+        c.playSelfW();
     }
 }

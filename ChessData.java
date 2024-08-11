@@ -1,21 +1,22 @@
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
 public class ChessData {
 
-    public HashMap<Integer, HashMap<Byte, Byte>> occupancyTable; // Sliding Piece Occupancy Lookup Table
+    public ArrayList<HashMap<Byte, Byte>> occupancyTable; // Sliding Piece Occupancy Lookup Table
     // Maps occupancy rows/columns/diagonals to attack maps for sliding pieces such as rooks, bishops and queens (RBQs.)
     public HashMap<Integer, Long> lurd; // Left/Up and Right/Down diagonal === \ ===
     public HashMap<Integer, Long> ruld; // Right/Up and Left/Down Diagonal === / ===
-    public HashMap<Integer, Long> rows; // === -- ===
-    public HashMap<Integer, Long> columns; // === | ===
+    public ArrayList<Long> rows; // === -- ===
+    public ArrayList<Long> columns; // === | ===
 
     public ChessData(){
-        occupancyTable = new HashMap<Integer, HashMap<Byte, Byte>>();
+        occupancyTable = new ArrayList<HashMap<Byte, Byte>>();
         generateDiagonals();
         generateStraights();
         generateAllBytes();
-        //generateOccupancyTable();
+        generateOccupancyTable();
     }
 
 
@@ -33,6 +34,7 @@ public class ChessData {
                 keys.add((byte) ((b4[i]<<4) | b4[j]));
             }
         }
+
         return keys;
 
     }
@@ -46,27 +48,29 @@ public class ChessData {
 
             // Calculate attack rows for each key
             for(byte key: keys){
-                if(((key>>(i)) & 1)==0){ // ignore key if the spot our piece is in is not occupied
+                if(((key>>(i)) & 0b01)==0){ // ignore key if the spot our piece is in is not occupied
                     continue;
                 }
 
                 byte attack = 0b0;
 
-                for(int j=i-1;j>0;j--){ // go left from i
+                for(int j=i+1;j<8;j++){ // go left from i
                     attack |= 0b01<<j;
-                    if((key>>j & 1) != 0){ // if j is occupied, add it and then stop here
+                    if((key&(1<<j)) != 0){ // if j is occupied, add it and then stop here
                         break;
                     }
                 }
-                for(int j=i+1;j<8;j++) { // go right from i
+                for(int j=i-1;j>=0;j--) { // go right from i
                     attack |= 0b01<<j;
-                    if(((key>>j) & 1) != 0){ // if j is occupied, add it and then stop here
+                    if((key&(1<<j)) != 0){ // if j is occupied, add it and then stop here
                         break;
                     }
                 }
+                map.put(key, attack);
 
 
             }
+            occupancyTable.add(map);
         }
     }
     private void generateDiagonals(){
@@ -105,25 +109,25 @@ public class ChessData {
     }
     private void generateStraights(){
 
-        rows = new HashMap<Integer, Long>();
-        columns = new HashMap<Integer, Long>();
+        rows = new ArrayList<Long>();
+        columns = new ArrayList<Long>();
 
-        rows.put(0, 0b0000000000000000000000000000000000000000000000000000000011111111L);
-        rows.put(1, 0b0000000000000000000000000000000000000000000000001111111100000000L);
-        rows.put(2, 0b0000000000000000000000000000000000000000111111110000000000000000L);
-        rows.put(3, 0b0000000000000000000000000000000011111111000000000000000000000000L);
-        rows.put(4, 0b0000000000000000000000001111111100000000000000000000000000000000L);
-        rows.put(5, 0b0000000000000000111111110000000000000000000000000000000000000000L);
-        rows.put(6, 0b0000000011111111000000000000000000000000000000000000000000000000L);
-        rows.put(7, 0b1111111100000000000000000000000000000000000000000000000000000000L);
-        columns.put(0, 0b1000000010000000100000001000000010000000100000001000000010000000L);
-        columns.put(1, 0b0100000001000000010000000100000001000000010000000100000001000000L);
-        columns.put(2, 0b0010000000100000001000000010000000100000001000000010000000100000L);
-        columns.put(3, 0b0001000000010000000100000001000000010000000100000001000000010000L);
-        columns.put(4, 0b0000100000001000000010000000100000001000000010000000100000001000L);
-        columns.put(5, 0b0000010000000100000001000000010000000100000001000000010000000100L);
-        columns.put(6, 0b0000001000000010000000100000001000000010000000100000001000000010L);
-        columns.put(7, 0b0000000100000001000000010000000100000001000000010000000100000001L);
+        rows.add(0b0000000000000000000000000000000000000000000000000000000011111111L);
+        rows.add(0b0000000000000000000000000000000000000000000000001111111100000000L);
+        rows.add(0b0000000000000000000000000000000000000000111111110000000000000000L);
+        rows.add(0b0000000000000000000000000000000011111111000000000000000000000000L);
+        rows.add(0b0000000000000000000000001111111100000000000000000000000000000000L);
+        rows.add(0b0000000000000000111111110000000000000000000000000000000000000000L);
+        rows.add(0b0000000011111111000000000000000000000000000000000000000000000000L);
+        rows.add(0b1111111100000000000000000000000000000000000000000000000000000000L);
+        columns.add(0b0000000100000001000000010000000100000001000000010000000100000001L);
+        columns.add(0b0000001000000010000000100000001000000010000000100000001000000010L);
+        columns.add(0b0000010000000100000001000000010000000100000001000000010000000100L);
+        columns.add(0b0000100000001000000010000000100000001000000010000000100000001000L);
+        columns.add(0b0001000000010000000100000001000000010000000100000001000000010000L);
+        columns.add(0b0010000000100000001000000010000000100000001000000010000000100000L);
+        columns.add(0b0100000001000000010000000100000001000000010000000100000001000000L);
+        columns.add(0b1000000010000000100000001000000010000000100000001000000010000000L);
 //
 //        for(int i=0;i<64;i++){
 //            long bb = (1L << i); // Initialize bit at position i to 1
