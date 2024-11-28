@@ -1,6 +1,5 @@
 #include "board.h"
 
-typedef struct Board Board;
 
 #ifndef GAME_H
 
@@ -15,7 +14,7 @@ struct Game {
 
 typedef struct Game Game;
 
-bool verifyMove(Game game, unsigned int move);
-int promptMove(Game game);
+bool verify_move(Game game, unsigned int move);
+int prompt_move(Game game);
 
 

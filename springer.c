@@ -1,28 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+
 #include "board.h"
+#include "tests.h"
+#include "generate_moves.h"
 
-typedef struct Board Board;
 
 
-void startSandbox(){
+
+void start_sandbox(){
 	
 	Board* board = malloc(sizeof(Board));
-	initializeBoard(board);
+	initialize_board(board);
  
-	printBoard(board);
+	print_board(board);
 	
-	bool gameLoop = 1;
-	while(gameLoop){
-		// promptMove();
+	generate_moves(board);
+	
+	bool game_loop = 1;
+	while(game_loop){
+		generate_moves(board);
+		// prompt_move();
 	}
+
+	free(board);
 
 }
 
 int main() {
 	
-	startSandbox();
+	
+	
+	start_sandbox();
 
 	return 0;
 }

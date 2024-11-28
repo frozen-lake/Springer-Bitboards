@@ -1,7 +1,7 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-struct Board {
+typedef struct {
 	unsigned long long occupied;
 	unsigned long long white;
 	unsigned long long black;
@@ -13,18 +13,19 @@ struct Board {
 	unsigned long long queen;
 	unsigned long long king;
 	
-	
-};
+
+	unsigned long long legal_attack[64];
+	unsigned long long attack_from[64]; 
+
+} Board;
 
 #endif
-
-typedef struct Board Board;
 
 
 // Board methods
 
-char positionToPiece(Board* board, char pos);
+char position_to_piece(Board* board, char pos);
 
-void initializeBoard(Board* board);
+void initialize_board(Board* board);
 
-void printBoard(Board* board);
+void print_board(Board* board);

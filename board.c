@@ -3,10 +3,8 @@
 #include "board.h"
 
 
-typedef struct Board Board;
 
-
-void initializeBoard(Board* board){
+void initialize_board(Board* board){
 	board->black = 0xFFFFULL << 48;
 	board->white = 0xFFFFULL;
 	board->occupied = board->black + board->white;
@@ -18,31 +16,29 @@ void initializeBoard(Board* board){
 	board->queen = 8ULL + (8ULL << 56);
 	board->king = 16ULL + (16ULL << 56);
 
-
+	for(int i=0;i<64;i++){
+		board->legal_attack[i] = 0;
+	}
 }
 
-char positionToPiece(Board* board, char pos){
+char position_to_piece(Board* board, char pos){
 	char c = ' ';
-
-	if(!((board->occupied >> pos) & 0x1)) return c;
-	if((board->pawn >> pos) & 0x1) c = 'p';
-	if((board->knight >> pos) & 0x1) c = 'n';
-	if((board->bishop >> pos) & 0x1) c = 'b';
-	if((board->rook >> pos) & 0x1) c = 'r';
-	if((board->queen >> pos) & 0x1) c = 'q';
-	if((board->king >> pos) & 0x1) c = 'k';
-	
-	if((board->white >> pos) & 0x1) c = toupper(c);
-
-	return c;
-
+	unsigned long long mask = 1ULL << pos;
+    if(board->pawn & mask) c = 'p';
+  	if(board->knight & mask) c = 'n';
+  	if(board->bishop & mask) c = 'b';
+   	if(board->rook & mask) c = 'r';
+    if(board->queen & mask) c = 'q';
+	if(board->king & mask) c = 'k';
+	if(board->white & mask) c = toupper(c);
+	return c; // No piece on this square
 }
 
-void printBoard(Board* board){
+void print_board(Board* board){
 	for(int i=7;i>=0;i--){
-		printf("| %c", positionToPiece(board, i*8));
+		printf("| %c", position_to_piece(board, i*8));
 		for(int j=1;j<8;j++){
-			printf(" | %c", positionToPiece(board, i*8 + j));
+			printf(" | %c", position_to_piece(board, i*8 + j));
 		}
 		printf(" |\n");	
 	}
