@@ -2,7 +2,6 @@
 #define BOARD_H
 
 typedef struct {
-	unsigned long long occupied;
 	unsigned long long white;
 	unsigned long long black;
 
@@ -22,10 +21,15 @@ typedef struct {
 #endif
 
 
-// Board methods
 
-char position_to_piece(Board* board, char pos);
+char position_to_piece(Board* board, int pos);
 
 void initialize_board(Board* board);
 
 void print_board(Board* board);
+void print_bitboard(unsigned long long);
+
+int load_fen(Board* board, char* str);
+
+
+

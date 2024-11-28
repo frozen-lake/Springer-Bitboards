@@ -52,9 +52,21 @@ int test_prompt_move(){
 	return Nf3 == (6 << 6) + 21 && e4 == (12 << 6) + 28;
 }
 
+// ====== board tests
+
+int test_load_fen(){
+	return 0;
+}
+
+// ====== generate_moves tests
+
 int test_generate_pawn_moves(){
 	Board* board = malloc(sizeof(Board));
 	initialize_board(board);
+
+	// change board
+
+
 	generate_pawn_moves(board);	
 
 	// To-Do: verify moves including promotion, en passant, captures, double pawn move.
@@ -86,6 +98,9 @@ int main(){
 		fprintf(stderr, "Test failed: test_prompt_move\n");
 	}
 
+	if(!test_load_fen()){
+		fprintf(stderr, "Test failed: test_load_fen\n");
+	}
 
 	if(!test_generate_pawn_moves()){
 		fprintf(stderr, "Test failed: test_generate_pawn_moves\n");

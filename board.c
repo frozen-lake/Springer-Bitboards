@@ -7,7 +7,6 @@
 void initialize_board(Board* board){
 	board->black = 0xFFFFULL << 48;
 	board->white = 0xFFFFULL;
-	board->occupied = board->black + board->white;
 
 	board->pawn = 0x00ff00000000ff00ULL;
 	board->knight = 66ULL + (66ULL << 56);
@@ -21,19 +20,21 @@ void initialize_board(Board* board){
 	}
 }
 
-char position_to_piece(Board* board, char pos){
+// Returns the character representing the piece at the given bit index
+char position_to_piece(Board* board, int pos){
 	char c = ' ';
 	unsigned long long mask = 1ULL << pos;
-    if(board->pawn & mask) c = 'p';
-  	if(board->knight & mask) c = 'n';
-  	if(board->bishop & mask) c = 'b';
-   	if(board->rook & mask) c = 'r';
-    if(board->queen & mask) c = 'q';
+	if(board->pawn & mask) c = 'p';
+	if(board->knight & mask) c = 'n';
+	if(board->bishop & mask) c = 'b';
+	if(board->rook & mask) c = 'r';
+	if(board->queen & mask) c = 'q';
 	if(board->king & mask) c = 'k';
 	if(board->white & mask) c = toupper(c);
 	return c; // No piece on this square
 }
 
+// Prints the board state
 void print_board(Board* board){
 	for(int i=7;i>=0;i--){
 		printf("| %c", position_to_piece(board, i*8));
@@ -44,3 +45,19 @@ void print_board(Board* board){
 	}
 }
 
+// Prints the passed bitboard in an 8x8 format
+void print_bitboard(unsigned long long bb){
+	for(int i=7;i>=0;i--){
+		printf("| %d", (bb >> (i*8))&1);
+		for(int j=1;j<8;j++){
+			printf(" | %d", (bb>>(i*8 + j))&1);
+		}
+		printf(" |\n");	
+	}
+	
+}
+
+int load_fen(Board* board, char* str){
+	// To-Do: implement load_fen routine	
+	return 0;
+}
