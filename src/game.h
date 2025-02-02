@@ -5,7 +5,7 @@
 
 struct Game {
 	Board* board;
-	bool alive;
+	int alive;
 	
 	unsigned long long legal_to[64];
 	unsigned long long legal_from[64]; 
@@ -16,7 +16,6 @@ struct Game {
 
 typedef struct Game Game;
 
-bool verify_move(Game game, unsigned int move);
-int prompt_move(Game game);
-
+int load_fen(Game* game, char* str);
+int verify_move(Game* game, unsigned int move);
 

@@ -25,11 +25,10 @@ typedef struct {
 char position_to_piece(Board* board, int pos);
 
 void initialize_board(Board* board);
-
+void empty_board(Board* board);
 void print_board(Board* board);
-void print_bitboard(unsigned long long);
 
-int load_fen(Board* board, char* str);
+void print_bitboard(unsigned long long);
 
 
 

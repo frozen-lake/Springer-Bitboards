@@ -45,6 +45,14 @@ void print_board(Board* board){
 	}
 }
 
+void empty_board(Board* board){
+	board->black = board->white = board->pawn = board->knight = board->bishop = board->rook = board->queen = board->king = 0;
+	for(int i=0;i<64;i++){
+		board->attack_to[i] = 0;
+	}
+	
+}
+
 // Prints the passed bitboard in an 8x8 format
 void print_bitboard(unsigned long long bb){
 	for(int i=7;i>=0;i--){
@@ -55,9 +63,4 @@ void print_bitboard(unsigned long long bb){
 		printf(" |\n");	
 	}
 	
-}
-
-int load_fen(Board* board, char* str){
-	// To-Do: implement load_fen routine	
-	return 0;
 }

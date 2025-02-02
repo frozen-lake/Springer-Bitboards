@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "game.h"
 #include "board.h"
 #include "prompt_move.h"
 #include "generate_moves.h"
@@ -55,7 +56,27 @@ int test_prompt_move(){
 // ====== board tests
 
 int test_load_fen(){
-	return 0;
+	Game* game = malloc(sizeof(Game));
+	
+	char* fen = "4k3/8/8/1n2p3/4P1Pp/8/8/3BK3 b - g3 0 1";
+	int success = load_fen(game, fen);
+	Board* board = game->board;
+	
+	// printf("Board after load_fen:\n");
+	// print_board(board);
+	
+	if(!success){free(game); return 0; }
+	
+	if(!board){ free(game); return 0; }
+
+	int pawn_match = (board->pawn) == ((1ULL << 28) | (1ULL << 36) | (1ULL << 30) | (1ULL << 31));
+
+	// To-Do: test en passant square and turn
+
+
+	free(board);	
+	free(game);
+	return pawn_match;
 }
 
 // ====== generate_moves tests
