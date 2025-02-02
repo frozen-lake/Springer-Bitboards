@@ -21,8 +21,8 @@ int test_find_source_square(){
 	initialize_board(board);
 
 	// replace with generate_moves once that routine is functional
-	board->legal_attack[6] |= (1 << 21);
-	board->legal_attack[12] |= (1 << 28);
+	board->attack_to[6] |= (1 << 21);
+	board->attack_to[12] |= (1 << 28);
 
 	int Nf3_src = find_source_square(board, 'N', 21, 0, -1);
 	int e4_src = find_source_square(board, 'P', 28, 0, -1);
@@ -40,8 +40,8 @@ int test_prompt_move(){
 	char* move = "Nf3";
 	
 	// replace with generate_moves with generate_moves once that routine is functional
-	board->legal_attack[6] |= (1 << 21);
-	board->legal_attack[12] |= (1 << 28);
+	board->attack_to[6] |= (1 << 21);
+	board->attack_to[12] |= (1 << 28);
 
 	int Nf3 = parse_algebraic_move(move, board);
 	int e4 = parse_algebraic_move("e4", board);

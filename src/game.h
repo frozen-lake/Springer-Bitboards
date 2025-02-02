@@ -5,8 +5,10 @@
 
 struct Game {
 	Board* board;
-	bool active;
-	bool winner;
+	bool alive;
+	
+	unsigned long long legal_to[64];
+	unsigned long long legal_from[64]; 
 };
 
 

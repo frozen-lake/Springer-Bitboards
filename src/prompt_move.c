@@ -20,7 +20,7 @@ int parse_square(const char *square) {
 int find_source_square(Board *board, char piece, int destination, char file_hint, int rank_hint) {
     for (int i=0; i<64; i++) {
         if (position_to_piece(board, i) == piece) { 
-            if(board->legal_attack[i] & (1 << destination)) {
+            if(board->attack_to[i] & (1 << destination)) {
                 if (file_hint && (i%8) != (file_hint-'a')) {
                     continue;
                 }

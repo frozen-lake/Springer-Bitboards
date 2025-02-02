@@ -13,7 +13,7 @@ typedef struct {
 	unsigned long long king;
 	
 
-	unsigned long long legal_attack[64];
+	unsigned long long attack_to[64];
 	unsigned long long attack_from[64]; 
 
 } Board;

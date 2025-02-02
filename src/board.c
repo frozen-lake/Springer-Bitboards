@@ -16,7 +16,7 @@ void initialize_board(Board* board){
 	board->king = 16ULL + (16ULL << 56);
 
 	for(int i=0;i<64;i++){
-		board->legal_attack[i] = 0;
+		board->attack_to[i] = 0;
 	}
 }
 

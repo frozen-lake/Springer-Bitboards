@@ -1,7 +1,10 @@
-cd src
-gcc -c board.c -g
-gcc -c generate_moves.c -g
-gcc -c game.c -g
-gcc -c prompt_move.c -g
-gcc -c tests.c -g
-gcc -o ../springer_tests.exe board.o generate_moves.c game.c prompt_move.c tests.c 
+mkdir -p obj
+cd obj
+gcc -c ../src/board.c -g
+gcc -c ../src/generate_moves.c -g
+gcc -c ../src/game.c -g
+gcc -c ../src/prompt_move.c -g
+gcc -c ../src/tests.c -g
+
+cd ..
+gcc -o springer_tests.exe obj/board.o obj/generate_moves.o obj/game.o obj/prompt_move.o obj/tests.o
