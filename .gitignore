@@ -2,4 +2,4 @@
 *.sh
 *.o
 *.exe
-.game.h.swp
+*.swp

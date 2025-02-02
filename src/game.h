@@ -4,7 +4,7 @@
 #ifndef GAME_H
 
 struct Game {
-	Board board;
+	Board* board;
 	bool active;
 	bool winner;
 };
