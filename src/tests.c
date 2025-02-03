@@ -9,17 +9,15 @@
 // ====== prompt_move tests
 
 int test_parse_square(){
-	Board* board = malloc(sizeof(Board));
-	initialize_board(board);
+	Board* board = create_board();
 	int f3 = parse_square("f3");
 	
-	free(board);
+	destroy_board(board);
 	return f3 == 21;
 }
 
 int test_find_source_square(){
-	Board* board = malloc(sizeof(Board));
-	initialize_board(board);
+	Board* board = create_board();
 
 	// replace with generate_moves once that routine is functional
 	board->attack_to[6] |= (1 << 21);
@@ -30,14 +28,13 @@ int test_find_source_square(){
 	
 	// printf("Nf3src: %d, e4src: %d\n", Nf3_src, e4_src);
 	
-	free(board);
+	destroy_board(board);
 	return Nf3_src == 6 && e4_src == 12;
 }
 
 int test_prompt_move(){
 	
-	Board* board = malloc(sizeof(Board));
-	initialize_board(board);
+	Board* board = create_board();
 	char* move = "Nf3";
 	
 	// replace with generate_moves with generate_moves once that routine is functional
@@ -49,14 +46,14 @@ int test_prompt_move(){
 	
 	// printf("Encoded move: %d\n", e4);
 	
-	free(board);
+	destroy_board(board);
 	return Nf3 == (6 << 6) + 21 && e4 == (12 << 6) + 28;
 }
 
 // ====== board tests
 
 int test_load_fen(){
-	Game* game = malloc(sizeof(Game));
+	Game* game = create_game();
 	
 	char* fen = "4k3/8/8/1n2p3/4P1Pp/8/8/3BK3 b - g3 0 1";
 	int success = load_fen(game, fen);
@@ -65,44 +62,38 @@ int test_load_fen(){
 	// printf("Board after load_fen:\n");
 	// print_board(board);
 	
-	if(!success){free(game); return 0; }
+	if(!success){ destroy_game(game); return 0; }
 	
-	if(!board){ free(game); return 0; }
+	if(!board){ destroy_game(game); return 0; }
 
 	int pawn_match = (board->pawn) == ((1ULL << 28) | (1ULL << 36) | (1ULL << 30) | (1ULL << 31));
 
 	// To-Do: test en passant square and turn
 
 
-	free(board);	
-	free(game);
+	destroy_game(game);
 	return pawn_match;
 }
 
 // ====== generate_moves tests
 
 int test_generate_pawn_moves(){
-	Board* board = malloc(sizeof(Board));
-	initialize_board(board);
-
-	// change board
-
+	Board* board = create_board();
 
 	generate_pawn_moves(board);	
 
 	// To-Do: verify moves including promotion, en passant, captures, double pawn move.
 
-	free(board);
+	destroy_board(board);
 	return 0;
 }
 
 int test_generate_moves(){
-	Board* board = malloc(sizeof(Board));
-	initialize_board(board);
+	Board* board = create_board();
 	generate_pawn_moves(board);
 	
 	// To-Do: verify a variety of piece moves, verify legal move bitboards
-	free(board);
+	destroy_board(board);
 	return 0;
 }
 

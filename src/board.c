@@ -1,8 +1,18 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include "board.h"
 
 
+Board* create_board(){
+	Board* board = (Board*) malloc(sizeof(Board));
+	initialize_board(board);
+	return board;
+}
+
+void destroy_board(Board* board){
+	free(board);
+}
 
 void initialize_board(Board* board){
 	board->black = 0xFFFFULL << 48;

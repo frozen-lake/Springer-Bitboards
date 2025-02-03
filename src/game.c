@@ -6,8 +6,22 @@
 #include "board.h"
 
 
+Game* create_game(){
+	Game* game = malloc(sizeof(Game));
+	return game;
+}
+
+void destroy_game(Game* game){
+	if(game->board) destroy_board(game->board);
+	free(game);
+}
+
+void initialize_game(Game* game){
+	game->board = create_board();
+}
+
 int load_fen(Game* game, char* str){
-	Board* board = malloc(sizeof(Board));
+	Board* board = (Board*) malloc(sizeof(Board));
 	empty_board(board);	
 	// Split up FEN by spaces
 	char fen[70];

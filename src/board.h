@@ -24,6 +24,9 @@ typedef struct {
 
 char position_to_piece(Board* board, int pos);
 
+Board* create_board();
+void destroy_board(Board* board);
+
 void initialize_board(Board* board);
 void empty_board(Board* board);
 void print_board(Board* board);
