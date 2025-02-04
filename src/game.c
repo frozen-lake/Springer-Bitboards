@@ -8,6 +8,7 @@
 
 Game* create_game(){
 	Game* game = malloc(sizeof(Game));
+	initialize_game(game);
 	return game;
 }
 

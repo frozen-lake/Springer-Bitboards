@@ -1,9 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "board.h"
-#include "prompt_move.h"
-
-
 int test_parse_square();
 int test_prompt_move();
 int test_find_source_square();

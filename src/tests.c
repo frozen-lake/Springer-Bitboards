@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 #include "game.h"
 #include "board.h"
 #include "prompt_move.h"
@@ -37,14 +39,14 @@ int test_prompt_move(){
 	Board* board = create_board();
 	char* move = "Nf3";
 	
-	// replace with generate_moves with generate_moves once that routine is functional
+	// replace with generate_moves once that routine is functional
 	board->attack_to[6] |= (1 << 21);
 	board->attack_to[12] |= (1 << 28);
 
 	int Nf3 = parse_algebraic_move(move, board);
 	int e4 = parse_algebraic_move("e4", board);
 	
-	// printf("Encoded move: %d\n", e4);
+	printf("Encoded move: %d\n", e4);
 	
 	destroy_board(board);
 	return Nf3 == (6 << 6) + 21 && e4 == (12 << 6) + 28;
@@ -100,6 +102,36 @@ int test_generate_moves(){
 // ======
 
 int main(){
+	int (* test_cases[6])();
+	
+	//{test_parse_square, test_find_source_square, test_prompt_move, test_load_fen, test_generate_pawn_moves, test_generate_moves};
+	char* test_case_names[6];
+
+	test_cases[0] = test_parse_square;
+	test_cases[1] = test_find_source_square;
+	test_cases[2] = test_prompt_move;
+	test_cases[3] = test_load_fen;
+	test_cases[4] = test_generate_pawn_moves;
+	test_cases[5] = test_generate_moves;
+	
+	test_case_names[0] = "test_parse_square";
+	test_case_names[1] = "test_find_source_square";
+	test_case_names[2] = "test_prompt_move";
+	test_case_names[3] = "test_load_fen";
+	test_case_names[4] = "test_generate_pawn_moves";
+	test_case_names[5] = "test_generate_moves";
+
+	int size = sizeof(test_cases) / sizeof(test_cases[0]);
+
+	for(int i=0;i<size;i++){
+		if(!test_cases[i]()){
+			fprintf(stderr, "Test FAILED: %s \t<-----------\n", test_case_names[i]);
+		} else {
+			printf("Test passed: %s\n", test_case_names[i]);
+		}
+	}
+
+	/*
 	if(!test_parse_square()){
 		fprintf(stderr, "Test failed: ");
 	}
@@ -121,7 +153,7 @@ int main(){
 	if(!test_generate_moves()){
 		fprintf(stderr, "Test failed: test_generate_moves\n");
 	}
-
+	*/
 
 	return 0;
 }
