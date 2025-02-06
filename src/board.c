@@ -18,28 +18,29 @@ void initialize_board(Board* board){
 	board->black = 0xFFFFULL << 48;
 	board->white = 0xFFFFULL;
 
-	board->pawn = 0x00ff00000000ff00ULL;
-	board->knight = 66ULL + (66ULL << 56);
-	board->bishop = 36ULL + (36ULL << 56);
-	board->rook = 129ULL + (129ULL << 56);
-	board->queen = 8ULL + (8ULL << 56);
-	board->king = 16ULL + (16ULL << 56);
+	board->pieces[Pawn] = 0x00ff00000000ff00ULL;
+	board->pieces[Knight] = 66ULL + (66ULL << 56);
+	board->pieces[Bishop] = 36ULL + (36ULL << 56);
+	board->pieces[Rook] = 129ULL + (129ULL << 56);
+	board->pieces[Queen] = 8ULL + (8ULL << 56);
+	board->pieces[King] = 16ULL + (16ULL << 56);
 
 	for(int i=0;i<64;i++){
 		board->attack_to[i] = 0;
+		board->attack_from[i] = 0;
 	}
 }
 
 // Returns the character representing the piece at the given bit index
 char position_to_piece(Board* board, int pos){
 	char c = ' ';
-	unsigned long long mask = 1ULL << pos;
-	if(board->pawn & mask) c = 'p';
-	if(board->knight & mask) c = 'n';
-	if(board->bishop & mask) c = 'b';
-	if(board->rook & mask) c = 'r';
-	if(board->queen & mask) c = 'q';
-	if(board->king & mask) c = 'k';
+	uint64_t mask = 1ULL << pos;
+	if(board->pieces[Pawn] & mask) c = 'p';
+	if(board->pieces[Knight] & mask) c = 'n';
+	if(board->pieces[Bishop] & mask) c = 'b';
+	if(board->pieces[Rook] & mask) c = 'r';
+	if(board->pieces[Queen] & mask) c = 'q';
+	if(board->pieces[King] & mask) c = 'k';
 	if(board->white & mask) c = toupper(c);
 	return c; // No piece on this square
 }
@@ -56,15 +57,14 @@ void print_board(Board* board){
 }
 
 void empty_board(Board* board){
-	board->black = board->white = board->pawn = board->knight = board->bishop = board->rook = board->queen = board->king = 0;
+	board->black = board->white = board->pieces[Pawn] = board->pieces[Knight] = board->pieces[Bishop] = board->pieces[Rook] = board->pieces[Queen] = board->pieces[King] = 0;
 	for(int i=0;i<64;i++){
 		board->attack_to[i] = 0;
 	}
-	
 }
 
 // Prints the passed bitboard in an 8x8 format
-void print_bitboard(unsigned long long bb){
+void print_bitboard(uint64_t bb){
 	for(int i=7;i>=0;i--){
 		printf("| %d", (bb >> (i*8))&1);
 		for(int j=1;j<8;j++){

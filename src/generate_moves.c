@@ -1,12 +1,25 @@
 #include "board.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
+uint64_t** compute_attack_maps(){
+	
+	/* Allocate a 6 x 64 array of bitboards */
+	uint64_t** attack_maps = (uint64_t**) calloc(6, sizeof(uint64_t*));
+	for(int i=0;i<6;i++){
+		attack_maps[i] = calloc(64, sizeof(uint64_t));
+	}
+
+
+
+	return attack_maps;
+}
 
 void generate_pawn_moves(Board* board){
-	unsigned long long occupied = board->white | board->black;
-	unsigned long long white_pawns = board->white & board->pawn;
-	unsigned long long black_pawns = board->black & board->pawn;
+	uint64_t occupied = board->white | board->black;
+	uint64_t white_pawns = board->white & board->pieces[Pawn];
+	uint64_t black_pawns = board->black & board->pieces[Pawn];
 	
 	// Iterate over pawns by repeatedly popping MSB
 	while(white_pawns){

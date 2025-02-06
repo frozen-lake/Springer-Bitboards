@@ -22,7 +22,7 @@ void initialize_game(Game* game){
 }
 
 int load_fen(Game* game, char* str){
-	Board* board = (Board*) malloc(sizeof(Board));
+	Board* board = create_board();
 	empty_board(board);	
 	// Split up FEN by spaces
 	char fen[70];
@@ -69,26 +69,26 @@ int load_fen(Game* game, char* str){
 				}
 				file += p;
 			} else if(isalpha(c)){
-				unsigned long long piece = 1ULL << (rank*8 + file);
+				uint64_t piece = 1ULL << (rank*8 + file);
 				char u = toupper(c);
 				switch(u){
 					case 'P':
-						board->pawn |= piece;
+						board->pieces[Pawn] |= piece;
 						break;
 					case 'N':
-						board->knight |= piece;
+						board->pieces[Knight] |= piece;
 						break;
 					case 'B':
-						board->bishop |= piece;
+						board->pieces[Bishop] |= piece;
 						break;
 					case 'R':
-						board->rook |= piece;
+						board->pieces[Rook] |= piece;
 						break;
 					case 'Q':
-						board->queen |= piece;
+						board->pieces[Queen] |= piece;
 						break;
 					case 'K':
-						board->king |= piece;
+						board->pieces[King] |= piece;
 						break;
 					default:
 						free(board);

@@ -7,8 +7,8 @@ struct Game {
 	Board* board;
 	int alive;
 	
-	unsigned long long legal_to[64];
-	unsigned long long legal_from[64]; 
+	uint64_t legal_to[64];
+	uint64_t legal_from[64]; 
 };
 
 
@@ -22,5 +22,4 @@ void destroy_game(Game* game);
 void initialize_game(Game* game);
 int load_fen(Game* game, char* str);
 
-int verify_move(Game* game, unsigned int move);
 

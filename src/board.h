@@ -1,20 +1,26 @@
+#include <stdint.h>
+
 #ifndef BOARD_H
 #define BOARD_H
 
+enum Piece {
+	Pawn,
+	Knight,
+	Bishop,
+	Rook,
+	Queen,
+	King
+};
+
+
 typedef struct {
-	unsigned long long white;
-	unsigned long long black;
+	uint64_t white;
+	uint64_t black;
 
-	unsigned long long knight;
-	unsigned long long bishop;
-	unsigned long long pawn;
-	unsigned long long rook;
-	unsigned long long queen;
-	unsigned long long king;
-	
+	uint64_t pieces[6];
 
-	unsigned long long attack_to[64];
-	unsigned long long attack_from[64]; 
+	uint64_t attack_to[64];
+	uint64_t attack_from[64]; 
 
 } Board;
 
@@ -31,7 +37,7 @@ void initialize_board(Board* board);
 void empty_board(Board* board);
 void print_board(Board* board);
 
-void print_bitboard(unsigned long long);
+void print_bitboard(uint64_t);
 
 
 

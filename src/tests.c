@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 #include "game.h"
 #include "board.h"
 #include "prompt_move.h"
@@ -21,7 +22,7 @@ int test_parse_square(){
 int test_find_source_square(){
 	Board* board = create_board();
 
-	// replace with generate_moves once that routine is functional
+	/* replace with generate_moves once that routine is functional */
 	board->attack_to[6] |= (1 << 21);
 	board->attack_to[12] |= (1 << 28);
 
@@ -39,14 +40,14 @@ int test_prompt_move(){
 	Board* board = create_board();
 	char* move = "Nf3";
 	
-	// replace with generate_moves once that routine is functional
+	/* replace with generate_moves once that routine is functional */
 	board->attack_to[6] |= (1 << 21);
 	board->attack_to[12] |= (1 << 28);
 
 	int Nf3 = parse_algebraic_move(move, board);
 	int e4 = parse_algebraic_move("e4", board);
 	
-	printf("Encoded move: %d\n", e4);
+	// printf("Encoded move: %d\n", e4);
 	
 	destroy_board(board);
 	return Nf3 == (6 << 6) + 21 && e4 == (12 << 6) + 28;
@@ -68,16 +69,24 @@ int test_load_fen(){
 	
 	if(!board){ destroy_game(game); return 0; }
 
-	int pawn_match = (board->pawn) == ((1ULL << 28) | (1ULL << 36) | (1ULL << 30) | (1ULL << 31));
+	int pawn_match = (board->pieces[Pawn]) == ((1ULL << 28) | (1ULL << 36) | (1ULL << 30) | (1ULL << 31));
 
 	// To-Do: test en passant square and turn
-
+	
+	int bad_fen = load_fen(game, "4k3/8/8/1n3p3/4P1Pp/8/8/3BK3 b - g3 0 1");
 
 	destroy_game(game);
-	return pawn_match;
+	return pawn_match && !bad_fen;
 }
 
 // ====== generate_moves tests
+
+int test_compute_attack_maps(){
+	uint64_t** attack_maps = compute_attack_maps();
+
+	free(attack_maps);
+	return 0;
+}
 
 int test_generate_pawn_moves(){
 	Board* board = create_board();
@@ -102,24 +111,26 @@ int test_generate_moves(){
 // ======
 
 int main(){
-	int (* test_cases[6])();
-	
-	//{test_parse_square, test_find_source_square, test_prompt_move, test_load_fen, test_generate_pawn_moves, test_generate_moves};
-	char* test_case_names[6];
+	int num_tests = 7;
+
+	int (*test_cases[num_tests])();
+	char* test_case_names[num_tests];
 
 	test_cases[0] = test_parse_square;
 	test_cases[1] = test_find_source_square;
 	test_cases[2] = test_prompt_move;
 	test_cases[3] = test_load_fen;
-	test_cases[4] = test_generate_pawn_moves;
-	test_cases[5] = test_generate_moves;
-	
+	test_cases[4] = test_compute_attack_maps;
+	test_cases[5] = test_generate_pawn_moves;
+	test_cases[6] = test_generate_moves;
+
 	test_case_names[0] = "test_parse_square";
 	test_case_names[1] = "test_find_source_square";
 	test_case_names[2] = "test_prompt_move";
 	test_case_names[3] = "test_load_fen";
-	test_case_names[4] = "test_generate_pawn_moves";
-	test_case_names[5] = "test_generate_moves";
+	test_case_names[4] = "test_compute_attack_maps";
+	test_case_names[5] = "test_generate_pawn_moves";
+	test_case_names[6] = "test_generate_moves";
 
 	int size = sizeof(test_cases) / sizeof(test_cases[0]);
 
@@ -131,29 +142,6 @@ int main(){
 		}
 	}
 
-	/*
-	if(!test_parse_square()){
-		fprintf(stderr, "Test failed: ");
-	}
-	if(!test_find_source_square()){
-		fprintf(stderr, "Test failed: test_find_source_square\n");
-	}
-	if(!test_prompt_move()){
-		fprintf(stderr, "Test failed: test_prompt_move\n");
-	}
-
-	if(!test_load_fen()){
-		fprintf(stderr, "Test failed: test_load_fen\n");
-	}
-
-	if(!test_generate_pawn_moves()){
-		fprintf(stderr, "Test failed: test_generate_pawn_moves\n");
-	}
-
-	if(!test_generate_moves()){
-		fprintf(stderr, "Test failed: test_generate_moves\n");
-	}
-	*/
 
 	return 0;
 }
