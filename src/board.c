@@ -15,8 +15,8 @@ void destroy_board(Board* board){
 }
 
 void initialize_board(Board* board){
-	board->black = 0xFFFFULL << 48;
-	board->white = 0xFFFFULL;
+	board->pieces[Black] = 0xFFFFULL << 48;
+	board->pieces[White] = 0xFFFFULL;
 
 	board->pieces[Pawn] = 0x00ff00000000ff00ULL;
 	board->pieces[Knight] = 66ULL + (66ULL << 56);
@@ -41,7 +41,7 @@ char position_to_piece(Board* board, int pos){
 	if(board->pieces[Rook] & mask) c = 'r';
 	if(board->pieces[Queen] & mask) c = 'q';
 	if(board->pieces[King] & mask) c = 'k';
-	if(board->white & mask) c = toupper(c);
+	if(board->pieces[White] & mask) c = toupper(c);
 	return c; // No piece on this square
 }
 
@@ -57,7 +57,7 @@ void print_board(Board* board){
 }
 
 void empty_board(Board* board){
-	board->black = board->white = board->pieces[Pawn] = board->pieces[Knight] = board->pieces[Bishop] = board->pieces[Rook] = board->pieces[Queen] = board->pieces[King] = 0;
+	board->pieces[Black] = board->pieces[White] = board->pieces[Pawn] = board->pieces[Knight] = board->pieces[Bishop] = board->pieces[Rook] = board->pieces[Queen] = board->pieces[King] = 0;
 	for(int i=0;i<64;i++){
 		board->attack_to[i] = 0;
 	}

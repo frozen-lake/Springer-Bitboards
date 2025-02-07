@@ -3,21 +3,23 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#define U64_MASK(n) (UINT64_C(1) << (n))
+
 enum Piece {
 	Pawn,
 	Knight,
 	Bishop,
 	Rook,
 	Queen,
-	King
+	King,
+	White,
+	Black
 };
 
 
 typedef struct {
-	uint64_t white;
-	uint64_t black;
 
-	uint64_t pieces[6];
+	uint64_t pieces[8];
 
 	uint64_t attack_to[64];
 	uint64_t attack_from[64]; 

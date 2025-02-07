@@ -7,6 +7,7 @@
 #include "board.h"
 #include "prompt_move.h"
 #include "generate_moves.h"
+#include "attack_data.h"
 
 
 // ====== prompt_move tests
@@ -79,7 +80,20 @@ int test_load_fen(){
 	return pawn_match && !bad_fen;
 }
 
-// ====== generate_moves tests
+// ====== attack_data tests
+
+int test_compute_knight_attacks(){
+	uint64_t* knight_attacks = compute_knight_attacks();
+
+	int success = knight_attacks[12] == 0b101000010001000000000001000100;
+	success = success && (knight_attacks[0] == U64_MASK(17) | U64_MASK(10));
+	success = success && (knight_attacks[63] == U64_MASK(53) | U64_MASK(46));
+	success = success && (knight_attacks[7] == U64_MASK(13) | U64_MASK(22));
+	success = success && (knight_attacks[57] == U64_MASK(40) | U64_MASK(42) | U64_MASK(51));
+
+	free(knight_attacks);
+	return success;
+}
 
 int test_compute_attack_maps(){
 	uint64_t** attack_maps = compute_attack_maps();
@@ -87,6 +101,8 @@ int test_compute_attack_maps(){
 	free(attack_maps);
 	return 0;
 }
+
+// ====== generate_moves tests
 
 int test_generate_pawn_moves(){
 	Board* board = create_board();
@@ -111,7 +127,7 @@ int test_generate_moves(){
 // ======
 
 int main(){
-	int num_tests = 7;
+	int num_tests = 8;
 
 	int (*test_cases[num_tests])();
 	char* test_case_names[num_tests];
@@ -120,17 +136,19 @@ int main(){
 	test_cases[1] = test_find_source_square;
 	test_cases[2] = test_prompt_move;
 	test_cases[3] = test_load_fen;
-	test_cases[4] = test_compute_attack_maps;
-	test_cases[5] = test_generate_pawn_moves;
-	test_cases[6] = test_generate_moves;
+	test_cases[4] = test_compute_knight_attacks;
+	test_cases[5] = test_compute_attack_maps;
+	test_cases[6] = test_generate_pawn_moves;
+	test_cases[7] = test_generate_moves;
 
 	test_case_names[0] = "test_parse_square";
 	test_case_names[1] = "test_find_source_square";
 	test_case_names[2] = "test_prompt_move";
 	test_case_names[3] = "test_load_fen";
-	test_case_names[4] = "test_compute_attack_maps";
-	test_case_names[5] = "test_generate_pawn_moves";
-	test_case_names[6] = "test_generate_moves";
+	test_case_names[4] = "test_compute_knight_attacks";
+	test_case_names[5] = "test_compute_attack_maps";
+	test_case_names[6] = "test_generate_pawn_moves";
+	test_case_names[7] = "test_generate_moves";
 
 	int size = sizeof(test_cases) / sizeof(test_cases[0]);
 

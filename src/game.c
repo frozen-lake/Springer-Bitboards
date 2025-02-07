@@ -96,9 +96,9 @@ int load_fen(Game* game, char* str){
 				}
 
 				if(isupper(c)){
-					board->white |= piece;
+					board->pieces[White] |= piece;
 				} else {
-					board->black |= piece;
+					board->pieces[Black] |= piece;
 				}
 				file++;
 			} else {
