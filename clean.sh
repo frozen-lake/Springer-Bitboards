@@ -7,4 +7,5 @@ rm -f tests.o
 rm -f board.o
 rm -f generate_moves.o
 rm -f prompt_move.o
+rm -f attack_data_tests.o
 rm -f game.o
