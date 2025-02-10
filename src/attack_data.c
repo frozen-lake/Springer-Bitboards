@@ -1,7 +1,10 @@
 #include "game.h"
 #include <stdlib.h>
 
-
+/*
+This file contains functions to compute the attack bitboards for each piece in each square,
+given an otherwise completely empty board.
+*/
 
 uint64_t* compute_knight_attacks(){
     uint64_t* knight_attacks = (uint64_t*) calloc(64, sizeof(uint64_t));

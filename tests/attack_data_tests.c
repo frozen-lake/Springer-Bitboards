@@ -47,7 +47,7 @@ int test_compute_queen_attacks(){
 }
 
 
-int test_attack_data(){
+int attack_data_tests(){
     
 	int num_tests = 4;
 
