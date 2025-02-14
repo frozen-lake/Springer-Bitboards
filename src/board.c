@@ -5,7 +5,7 @@
 
 
 Board* create_board(){
-	Board* board = (Board*) malloc(sizeof(Board));
+	Board* board = (Board*) calloc(1, sizeof(Board));
 	initialize_board(board);
 	return board;
 }
@@ -24,11 +24,6 @@ void initialize_board(Board* board){
 	board->pieces[Rook] = 129ULL + (129ULL << 56);
 	board->pieces[Queen] = 8ULL + (8ULL << 56);
 	board->pieces[King] = 16ULL + (16ULL << 56);
-
-	for(int i=0;i<64;i++){
-		board->attack_to[i] = 0;
-		board->attack_from[i] = 0;
-	}
 }
 
 // Returns the character representing the piece at the given bit index

@@ -47,9 +47,25 @@ int test_parse_algebraic_move(){
 	return Nf3 == (6 << 6) + 21 && e4 == (12 << 6) + 28;
 }
 
+int test_generate_rook_moves(){
+	Game* game = create_game();
+
+	load_fen(game, "4k3/8/8/1n2p3/4P1Pp/2R5/8/3BK3 b - g3 0 1");
+
+	// print_board(game->board);
+
+	generate_rook_moves(game, 18);
+	int success = game->legal_from[18] == 0b10000000100000001000000010000000100111110110000010000000100ULL;
+
+
+	destroy_game(game);
+	return 0;
+}
+
+
 void move_tests(){
 
-	int num_tests = 3;
+	int num_tests = 4;
 
 	int (*test_cases[num_tests])();
 	char* test_case_names[num_tests];
@@ -57,10 +73,12 @@ void move_tests(){
 	test_cases[0] = test_parse_square;
 	test_cases[1] = test_find_source_square;
 	test_cases[2] = test_parse_algebraic_move;
+	test_cases[3] = test_generate_rook_moves;
 
 	test_case_names[0] = "test_parse_square";
 	test_case_names[1] = "test_find_source_square";
 	test_case_names[2] = "test_parse_algebraic_move";
+	test_case_names[3] = "test_generate_rook_moves";
 
     run_tests(test_cases, test_case_names, num_tests);
 

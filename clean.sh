@@ -6,6 +6,5 @@ rm -f springer.o
 rm -f tests.o
 rm -f board.o
 rm -f move.o
-rm -f attack_data_tests.o
 rm -f move_tests.o
 rm -f game.o

@@ -4,21 +4,25 @@
 #include <string.h>
 #include "game.h"
 #include "board.h"
+#include "attack_data.h"
 
 
 Game* create_game(){
-	Game* game = malloc(sizeof(Game));
+	Game* game = calloc(1, sizeof(Game));
 	initialize_game(game);
 	return game;
 }
 
 void destroy_game(Game* game){
 	if(game->board) destroy_board(game->board);
+	if(game->attack_data) destroy_attack_data(game->attack_data);
 	free(game);
 }
 
 void initialize_game(Game* game){
 	game->board = create_board();
+    game->attack_data = create_attack_data();
+
 }
 
 int load_fen(Game* game, char* str){

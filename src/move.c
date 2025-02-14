@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include "board.h"
+#include "game.h"
 
 /* Convert algebraic notation to numeric square index: "e4" --> 28 */
 int parse_square(const char *square) {
@@ -72,4 +72,22 @@ int parse_algebraic_move(char* input, Board *board) {
     }
 
     return (source << 6) + destination; // Return the encoded move
+}
+
+/* Populate legal_to and legal_from to reflect legal moves from a rook at bit index origin*/
+void generate_rook_moves(Game* game, int origin){
+    Board* board = game->board;
+    int color = (board->pieces[White] >> origin) & 1;
+
+    uint64_t attack = game->attack_data->rook[origin];
+    int col = origin % 8;
+    int row = origin / 8;
+
+
+    /* multiply by special bitboard to */
+
+}
+
+void generate_all_rook_moves(Game* game){
+
 }
