@@ -7,27 +7,29 @@
 #include "attack_data.h"
 
 
+/* Create, initialize and return a Game. Also creates a Board and sets up the AttackData for this game. */
 Game* create_game(){
 	Game* game = calloc(1, sizeof(Game));
-	initialize_game(game);
+	game->board = create_board();
+    game->attack_data = create_attack_data();
 	return game;
 }
 
+/* Destroy a Game. */
 void destroy_game(Game* game){
 	if(game->board) destroy_board(game->board);
 	if(game->attack_data) destroy_attack_data(game->attack_data);
 	free(game);
 }
 
+/* Set the Board. */
 void initialize_game(Game* game){
-	game->board = create_board();
-    game->attack_data = create_attack_data();
-
+	initialize_board(game->board);
 }
 
+/* Load a position from a FEN String (Forsyth-Edwards Notation.) */
 int load_fen(Game* game, char* str){
 	Board* board = create_board();
-	empty_board(board);	
 	// Split up FEN by spaces
 	char fen[70];
 	strcpy(fen, str);
@@ -110,16 +112,17 @@ int load_fen(Game* game, char* str){
 				return 0;
 			}
 		}
+		
 	}	
 	
 
 
-	// printf("fen: %s\nfields: %s, %s, %s, %s, %s, %s\n", str, fen_field[0], fen_field[1], fen_field[2], fen_field[3], fen_field[4], fen_field[5]);
-	
+	//printf("fen: %s\nfields: %s, %s, %s, %s, %s, %s\n", str, fen_field[0], fen_field[1], fen_field[2], fen_field[3], fen_field[4], fen_field[5]);
+	//print_board(board);
 	// printf("field[0]: %s\n", fen_field[0]);
 	// printf("ranks: %s, %s, %s, %s, %s, %s, %s, %s\n", ranks[0], ranks[1], ranks[2], ranks[3], ranks[4], ranks[5], ranks[6], ranks[7]);
 
-
+	destroy_board(game->board);
 	game->board = board;
 	return 1;
 }

@@ -110,6 +110,39 @@ void compute_white_pawn_attacks(uint64_t* attack_arr){}
 void compute_black_pawn_attacks(uint64_t* attack_arr){}
 void compute_king_attacks(uint64_t* attack_arr){}
 
+/* Populate legal_to and legal_from to reflect legal moves from a rook at bit index origin*/
+void populate_rook_attack(Board* board, AttackData* attack_data, int origin){
+
+    int color = (board->pieces[White] >> origin) & 1;
+
+    uint64_t attack = attack_data->rook[origin];
+    int col = origin % 8;
+    int row = origin / 8;
+
+
+    /* multiply by special bitboard to */
+
+}
+
+void populate_bishop_attack(Board* board, AttackData* attack_data, int origin){
+
+}
+
+void populate_queen_attack(Board* board, AttackData* attack_data, int origin){
+
+}
+
+void populate_all_rook_attacks(Board* board, AttackData* attack_data){
+
+}
+void populate_all_bishop_attacks(Board* board, AttackData* attack_data){
+
+}
+
+void populate_all_queen_attacks(Board* board, AttackData* attack_data){
+
+}
+
 AttackData* create_attack_data(){
     AttackData* attack_data = (AttackData*) calloc(1, sizeof(AttackData));
     compute_white_pawn_attacks(attack_data->white_pawn);

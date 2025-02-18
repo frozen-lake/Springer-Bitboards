@@ -4,6 +4,8 @@
 
 #ifndef GAME_H
 
+#define DEBUG 1
+
 typedef struct Game Game;
 
 struct Game {

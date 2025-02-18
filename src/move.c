@@ -5,7 +5,7 @@
 #include "game.h"
 
 /* Convert algebraic notation to numeric square index: "e4" --> 28 */
-int parse_square(const char *square) {
+int parse_square(char *square) {
     if (strlen(square) != 2 || square[0] < 'a' || square[0] > 'h' || square[1] < '1' || square[1] > '8') {
         return -1;
     }
@@ -59,35 +59,17 @@ int parse_algebraic_move(char* input, Board *board) {
 
     /* Parse destination square */
     int destination = parse_square(destination_square);
-    if (destination < 0) {
+    if (DEBUG && destination < 0) {
         fprintf(stderr, "Invalid destination square: %s\n", destination_square);
         return -1;
     }
 
     /* Find the source square */
     int source = find_source_square(board, piece, destination, file_hint, rank_hint);
-    if (source < 0) {
+    if (DEBUG && source < 0) {
 	fprintf(stderr, "No valid source square found for move: %s\npiece: %c, dest: %d, fhint: %d, rhint: %d, source: %d\n", input, piece, destination, file_hint, rank_hint, source);
         return -1;
     }
 
     return (source << 6) + destination; // Return the encoded move
-}
-
-/* Populate legal_to and legal_from to reflect legal moves from a rook at bit index origin*/
-void generate_rook_moves(Game* game, int origin){
-    Board* board = game->board;
-    int color = (board->pieces[White] >> origin) & 1;
-
-    uint64_t attack = game->attack_data->rook[origin];
-    int col = origin % 8;
-    int row = origin / 8;
-
-
-    /* multiply by special bitboard to */
-
-}
-
-void generate_all_rook_moves(Game* game){
-
 }

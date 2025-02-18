@@ -4,9 +4,9 @@
 #include "board.h"
 
 
+/* Create and return an empty Board. */
 Board* create_board(){
 	Board* board = (Board*) calloc(1, sizeof(Board));
-	initialize_board(board);
 	return board;
 }
 
@@ -14,6 +14,7 @@ void destroy_board(Board* board){
 	free(board);
 }
 
+/* Initialize a Board with the starting position. */
 void initialize_board(Board* board){
 	board->pieces[Black] = 0xFFFFULL << 48;
 	board->pieces[White] = 0xFFFFULL;
@@ -26,7 +27,7 @@ void initialize_board(Board* board){
 	board->pieces[King] = 16ULL + (16ULL << 56);
 }
 
-// Returns the character representing the piece at the given bit index
+/* Returns the character representing the piece at the given bit index. */
 char position_to_piece(Board* board, int pos){
 	char c = ' ';
 	uint64_t mask = 1ULL << pos;
@@ -40,7 +41,7 @@ char position_to_piece(Board* board, int pos){
 	return c; // No piece on this square
 }
 
-// Prints the board state
+/* Prints the board state. */
 void print_board(Board* board){
 	for(int i=7;i>=0;i--){
 		printf("| %c", position_to_piece(board, i*8));
@@ -51,14 +52,16 @@ void print_board(Board* board){
 	}
 }
 
+/* Removes all pieces from the Board and clears the attack bitboards. */
 void empty_board(Board* board){
 	board->pieces[Black] = board->pieces[White] = board->pieces[Pawn] = board->pieces[Knight] = board->pieces[Bishop] = board->pieces[Rook] = board->pieces[Queen] = board->pieces[King] = 0;
 	for(int i=0;i<64;i++){
 		board->attack_to[i] = 0;
+		board->attack_from[i] = 0;
 	}
 }
 
-// Prints the passed bitboard in an 8x8 format
+/* Prints the passed bitboard in an 8x8 format. */
 void print_bitboard(uint64_t bb){
 	for(int i=7;i>=0;i--){
 		printf("| %d", (bb >> (i*8))&1);
