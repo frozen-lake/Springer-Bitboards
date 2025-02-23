@@ -50,6 +50,7 @@ void print_board(Board* board){
 		}
 		printf(" |\n");	
 	}
+	printf("=================================\n");
 }
 
 /* Removes all pieces from the Board and clears the attack bitboards. */
@@ -70,5 +71,6 @@ void print_bitboard(uint64_t bb){
 		}
 		printf(" |\n");	
 	}
+	printf("=================================\n");
 	
 }

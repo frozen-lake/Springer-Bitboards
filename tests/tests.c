@@ -58,6 +58,8 @@ int main(){
 	printf("====== ATTACK TESTS ======\n");
 	attack_tests();
 
+	printf("======\n");
+	
 
 	return 0;
 }

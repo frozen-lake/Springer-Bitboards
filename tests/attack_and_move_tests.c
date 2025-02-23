@@ -105,6 +105,17 @@ int test_populate_queen_attack(){
 	return 0;
 }
 
+int test_generate_occupancy_table(){
+	AttackData* attack_data = create_attack_data();
+
+	int success = attack_data->occupancy_table[4][0b101001] == 0b1101110;
+	success = success && attack_data->occupancy_table[6][0b101001] == 0b10110000;
+	success = success && attack_data->occupancy_table[0][0b111111] == 0b00000010;
+	success = success && attack_data->occupancy_table[2][0b111111] == 0b00001010;
+
+	return success;
+}
+
 void move_tests(){
 	int num_tests = 3;
 
@@ -125,7 +136,7 @@ void move_tests(){
 
 void attack_tests(){
 	
-	int num_tests = 3;
+	int num_tests = 4;
 
 	int (*test_cases[num_tests])();
 	char* test_case_names[num_tests];
@@ -133,10 +144,12 @@ void attack_tests(){
 	test_cases[0] = test_populate_rook_attack;
 	test_cases[1] = test_populate_bishop_attack;
 	test_cases[2] = test_populate_queen_attack;
+	test_cases[3] = test_generate_occupancy_table;
 
 	test_case_names[0] = "test_populate_rook_attack";
 	test_case_names[1] = "test_populate_bishop_attack";
 	test_case_names[2] = "test_populate_queen_attack";
+	test_case_names[3] = "test_generate_occupancy_table";
 
     run_tests(test_cases, test_case_names, num_tests);
 }

@@ -17,8 +17,14 @@ Game* create_game(){
 
 /* Destroy a Game. */
 void destroy_game(Game* game){
-	if(game->board) destroy_board(game->board);
-	if(game->attack_data) destroy_attack_data(game->attack_data);
+	if(game->board){
+		destroy_board(game->board);
+		game->board = NULL;
+	}
+	if(game->attack_data){
+		destroy_attack_data(game->attack_data);
+		game->attack_data = NULL;
+	}
 	free(game);
 }
 
