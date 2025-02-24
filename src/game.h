@@ -13,9 +13,6 @@ struct Game {
 	int alive;
 	
 	AttackData* attack_data;
-
-	uint64_t legal_to[64];
-	uint64_t legal_from[64]; 
 };
 
 

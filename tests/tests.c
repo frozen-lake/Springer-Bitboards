@@ -31,9 +31,9 @@ int test_load_fen(){
 int run_tests(int (*test_cases[])(), char** test_case_names, int num_cases){
 	for(int i=0;i<num_cases;i++){
 		if(!test_cases[i]()){
-			fprintf(stderr, "Test FAILED: %s\n", test_case_names[i]);
+			fprintf(stderr, "[x] FAIL: %s\n", test_case_names[i]);
 		} else {
-			printf("Test passed: %s\n", test_case_names[i]);
+			printf("[ ] PASS: %s\n", test_case_names[i]);
 		}
 	}
 }

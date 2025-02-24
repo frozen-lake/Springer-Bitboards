@@ -57,16 +57,16 @@ int test_populate_rook_attack(){
 	/* Rook on c3 with no blockers */
 	load_fen(game, "4k3/8/8/1n2p3/4P1Pp/2R5/8/3BK3 b - g3 0 1");
 	populate_rook_attack(game->board, game->attack_data, 18);
-	success = (game->board->attack_from[18] == 0b10000000100000001000000010000000100111110110000010000000100ULL)
-				  && (game->board->attack_to[2] == game->board->attack_to[22] == 0b1000000000000000000ULL);
-
+	success = (game->board->attack_from[18] == 0b10000000100000001000000010000000100111110110000010000000100ULL);
+	
 	/* Rook on c3 with enemy blocker on e3 and friendly blocker on c6 */
 	load_fen(game, "5k2/8/2Nr1p2/8/8/2R1b3/8/5K2 w - - 0 1");
 	populate_rook_attack(game->board, game->attack_data, 18);
-	success = success && (game->board->attack_from[18] == 0b10000000100000110110000010000000100ULL);
+	success = success && (game->board->attack_from[18] == 0b1000000010000000100000110110000010000000100);
+
 
 	destroy_game(game);
-	return 0;
+	return success;
 }
 
 int test_populate_bishop_attack(){

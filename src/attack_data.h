@@ -18,18 +18,16 @@ struct AttackData {
     uint64_t ruld[64]; // right-up, left-down diagonal /
     uint64_t lurd[64]; // left-up, right-down diagonal \
 
-    unsigned char occupancy_table[8][64];
+    uint64_t occupancy_table[8][64];
 };
 
 
 #endif
 
 
+uint64_t occupancy_table_lookup(AttackData* attack_data, int index, int occupancy_key);
 
 /* Compute attack ranges on an otherwise empty bitboard */
-void compute_diagonal_ruld(uint64_t* recipient_arr, int origin);
-void compute_diagonal_lurd(uint64_t* recipient_arr, int origin);
-
 void compute_knight_attacks(uint64_t* attack_arr);
 void compute_bishop_attacks(uint64_t* attack_arr);
 void compute_rook_attacks(uint64_t* attack_arr);
