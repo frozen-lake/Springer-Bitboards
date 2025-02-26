@@ -11,7 +11,6 @@
 Game* create_game(){
 	Game* game = calloc(1, sizeof(Game));
 	game->board = create_board();
-    game->attack_data = create_attack_data();
 	return game;
 }
 
@@ -20,10 +19,6 @@ void destroy_game(Game* game){
 	if(game->board){
 		destroy_board(game->board);
 		game->board = NULL;
-	}
-	if(game->attack_data){
-		destroy_attack_data(game->attack_data);
-		game->attack_data = NULL;
 	}
 	free(game);
 }

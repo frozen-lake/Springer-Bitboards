@@ -39,6 +39,8 @@ int run_tests(int (*test_cases[])(), char** test_case_names, int num_cases){
 }
 
 int main(){
+	initialize_attack_data();
+
 	int num_tests = 1;
 
 	int (*test_cases[num_tests])(); // array of function pointers

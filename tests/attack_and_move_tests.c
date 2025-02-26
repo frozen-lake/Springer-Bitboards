@@ -49,21 +49,36 @@ int test_parse_algebraic_move(){
 	return Nf3 == (6 << 6) + 21 && e4 == (12 << 6) + 28;
 }
 
+int test_populate_pawn_attack(){
+	return 0;
+}
+
+int test_populate_knight_attack(){
+	return 0;
+}
+int test_populate_king_attack(){
+	return 0;
+}
+
 int test_populate_rook_attack(){
 	/* Test single square rook attack population */
 	Game* game = create_game();
-	int success;
+	int success = 1;
 
 	/* Rook on c3 with no blockers */
 	load_fen(game, "4k3/8/8/1n2p3/4P1Pp/2R5/8/3BK3 b - g3 0 1");
-	populate_rook_attack(game->board, game->attack_data, 18);
+	populate_rook_attack(game->board, 18);
 	success = (game->board->attack_from[18] == 0b10000000100000001000000010000000100111110110000010000000100ULL);
 	
+	/* Rook on c5 with no blockers */
+	load_fen(game, "4k3/8/8/2R5/4P1Pp/8/8/3BK3 b - g3 0 1");
+	populate_rook_attack(game->board, 34);
+	success = (game->board->attack_from[34] == 0b10000000100000001001111101100000100000001000000010000000100ULL);
+
 	/* Rook on c3 with enemy blocker on e3 and friendly blocker on c6 */
 	load_fen(game, "5k2/8/2Nr1p2/8/8/2R1b3/8/5K2 w - - 0 1");
-	populate_rook_attack(game->board, game->attack_data, 18);
+	populate_rook_attack(game->board, 18);
 	success = success && (game->board->attack_from[18] == 0b1000000010000000100000110110000010000000100);
-
 
 	destroy_game(game);
 	return success;
@@ -75,16 +90,15 @@ int test_populate_bishop_attack(){
 
 	/* Single bishop on c5 with no blockers */
 	load_fen(game, "4k3/8/8/1nb1p3/4P1Pp/2R5/8/3BK3 b - g3 0 1");
-	populate_bishop_attack(game->board, game->attack_data, 18);
-	int success = game->board->attack_from[34] == 0b10000000010000000010000000000000001010000100010010000001000000ULL;
-
-	/* Single bishop on e4 with a friendly blocker on b7 and an enemy blocker on g6 */
-	load_fen(game, "5k2/1p6/6P1/8/4b3/8/8/5K2 b - - 0 1");
-	populate_bishop_attack(game->board, game->attack_data, 28);
-	success = game->board->attack_from[28] == 0b10001000010100000000000001010000100010010000010;
+	populate_bishop_attack(game->board, 34);
+	int success = game->board->attack_from[34] == 0b10000000010001000010100000000000001010000100010010000001000000ULL;
+	/* Single bishop on f4 with a friendly blocker on c7 and an enemy blocker on d2 */
+	load_fen(game, "5k2/2p5/8/8/5b2/8/3N4/5K2 b - - 0 1");
+	populate_bishop_attack(game->board, 29);
+	success = game->board->attack_from[29] == 0b100100010000101000000000000010100001000100000000000;
 
 	destroy_game(game);
-	return 0;
+	return success;
 }
 
 int test_populate_queen_attack(){
@@ -93,25 +107,24 @@ int test_populate_queen_attack(){
 
 	/* Single queen on c5 with no blockers */
 	load_fen(game, "4k3/8/8/2Q5/4P1Pp/8/8/3BK3 b - g3 0 1");
-	populate_queen_attack(game->board, game->attack_data, 34);
-	int success = game->board->attack_from[34] == 0b10010000010101000010101111101100001110000101010010010001000100ULL;
+	populate_queen_attack(game->board, 34);
+	int success = game->board->attack_from[34] == 0b10010000010101000011101111101100001110000101010010010001000100ULL;
 
 	/* Single queen on c5 with a friendly blocker on e3 and an enemy blocker on e7 */
 	load_fen(game, "4k3/4p3/8/2Q5/4P1Pp/4N3/8/3BK3 b - g3 0 1");
-	populate_queen_attack(game->board, game->attack_data, 34);
-	success = game->board->attack_from[34] == 0b10101000011101111101100001110000001010000010000000100ULL;
+	populate_queen_attack(game->board, 34);
+	success = game->board->attack_from[34] == 0b10000010101000011101111101100001110000101010000010000000100ULL;
 
 	destroy_game(game);
-	return 0;
+	return success;
 }
 
 int test_generate_occupancy_table(){
-	AttackData* attack_data = create_attack_data();
 
-	int success = attack_data->occupancy_table[4][0b101001] == 0b1101110;
-	success = success && attack_data->occupancy_table[6][0b101001] == 0b10110000;
-	success = success && attack_data->occupancy_table[0][0b111111] == 0b00000010;
-	success = success && attack_data->occupancy_table[2][0b111111] == 0b00001010;
+	int success = attack_data.occupancy_table[4][0b101001] == 0b1101110;
+	success = success && attack_data.occupancy_table[6][0b101001] == 0b10110000;
+	success = success && attack_data.occupancy_table[0][0b111111] == 0b00000010;
+	success = success && attack_data.occupancy_table[2][0b111111] == 0b00001010;
 
 	return success;
 }

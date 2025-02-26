@@ -11,8 +11,6 @@ typedef struct Game Game;
 struct Game {
 	Board* board;
 	int alive;
-	
-	AttackData* attack_data;
 };
 
 
