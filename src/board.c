@@ -65,12 +65,42 @@ void empty_board(Board* board){
 /* Prints the passed bitboard in an 8x8 format. */
 void print_bitboard(uint64_t bb){
 	for(int i=7;i>=0;i--){
-		printf("| %d", (bb >> (i*8))&1);
+		printf("| %llu", (bb >> (i*8))&1);
 		for(int j=1;j<8;j++){
-			printf(" | %d", (bb>>(i*8 + j))&1);
+			printf(" | %llu", (bb>>(i*8 + j))&1);
 		}
 		printf(" |\n");	
 	}
 	printf("=================================\n");
 	
+}
+
+int get_piece_on_square(int square, Board* board){
+	uint64_t mask = U64_MASK(square);
+	if(board->pieces[Pawn] & mask) return Pawn;
+	if(board->pieces[Knight] & mask) return Knight;
+	if(board->pieces[Bishop] & mask) return Bishop;
+	if(board->pieces[Rook] & mask) return Rook;
+	if(board->pieces[Queen] & mask) return Queen;
+	if(board->pieces[King] & mask) return King;
+	return White; // value for no piece
+}
+
+char* piece_to_string(int piece){
+	switch(piece){
+		case Pawn:
+			return "Pawn";
+		case Knight:
+			return "Knight";
+		case Bishop:
+			return "Bishop";
+		case Rook:
+			return "Rook";
+		case Queen:
+			return "Queen";
+		case King:
+			return "King";
+		default:
+			return "None";
+	}
 }

@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "attack_and_move_tests.h"
+#include "move_gen_tests.h"
 #include "../src/move.h"
 #include "../src/attack_data.h"
+#include "../src/move_gen.h"
 
 
 int test_load_fen(){
@@ -29,17 +31,21 @@ int test_load_fen(){
 }
 
 int run_tests(int (*test_cases[])(), char** test_case_names, int num_cases){
+	int result = 1;
 	for(int i=0;i<num_cases;i++){
 		if(!test_cases[i]()){
 			fprintf(stderr, "[x] FAIL: %s\n", test_case_names[i]);
+			result = 0;
 		} else {
 			printf("[ ] PASS: %s\n", test_case_names[i]);
 		}
 	}
+	return result;
 }
 
 int main(){
 	initialize_attack_data();
+
 
 	int num_tests = 1;
 
@@ -59,6 +65,9 @@ int main(){
 
 	printf("====== ATTACK TESTS ======\n");
 	attack_tests();
+
+	printf("====== MOVE GEN TESTS ======\n");
+	move_gen_tests();
 
 	printf("======\n");
 	

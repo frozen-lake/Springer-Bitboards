@@ -2,36 +2,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-AttackData attack_data = {};
+AttackData attack_data = {}; // globally declared, statically allocated
 
-/* This function is currently dependent on a Microsoft build environment. */
-uint64_t swap_uint64(uint64_t num){
-    return _byteswap_uint64(num);
-}
 
-static void compute_diagonal_ruld(uint64_t* recipient_arr, int origin){
-    /* left, down */
-    for(int j = origin; j/8 > 0 && j%8 > 0; j -= 9){
-        recipient_arr[origin] |= U64_MASK(j - 9);
-    }
-    /* right, up */
-    for(int j = origin; j/8 < 7 && j%8 < 7; j += 9){
-        recipient_arr[origin] |= U64_MASK(j+9);
-    }
-    recipient_arr[origin] |= U64_MASK(origin);
-}
-
-static void compute_diagonal_lurd(uint64_t* recipient_arr, int origin){
-    /* left, up */
-     for(int j = origin; j/8 < 7 && j%8 > 0; j += 7){
-        recipient_arr[origin] |= U64_MASK(j+7);
-    }
-    /* right, down */
-    for(int j = origin; j/8 > 0 && j%8 < 7; j -= 7){
-        recipient_arr[origin] |= U64_MASK(j-7);
-    }
-    recipient_arr[origin] |= U64_MASK(origin);
-}
 
 static void compute_knight_attacks(){
     for(int i=0;i<64;i++){
@@ -83,19 +56,41 @@ static uint64_t generate_row_occupancy_key(int row, uint64_t occupancy){
 
 static uint64_t generate_col_occupancy_key(int col, uint64_t occupancy){
     uint64_t result = (occupancy & attack_data.col[col]) >> col; // Extract occupancy, move to A file
-    return ((result * attack_data.lurd[7]) >> 57) & 0b111111; // Multiply to convert col to row, shift to first rank and isolate the 6 relevant bits
+    return ((result * attack_data.lurd[LURD_INDEX(7)]) >> 57) & 0b111111; // Multiply to convert col to row, shift to first rank and isolate the 6 relevant bits
 }
 
 static uint64_t generate_ruld_occupancy_key(int origin, uint64_t occupancy){
-	uint64_t occupancy_key = attack_data.ruld[origin] & occupancy;
+	uint64_t occupancy_key = attack_data.ruld[RULD_INDEX(origin)] & occupancy;
 	occupancy_key = (occupancy_key * attack_data.col[1]) >> 58;
+    return occupancy_key;
 }
 static uint64_t generate_lurd_occupancy_key(int origin, uint64_t occupancy){
-	uint64_t occupancy_key = attack_data.lurd[origin] & occupancy;
+	uint64_t occupancy_key = attack_data.lurd[LURD_INDEX(origin)] & occupancy;
 	occupancy_key = (occupancy_key * attack_data.col[1]) >> 58;
+    return occupancy_key;
 }
 
-/* Populate legal_to and legal_from to reflect legal moves from a rook at bit index origin*/
+/* Populate legal_to and legal_from to reflect legal moves from a Bishop at bit index origin */
+void populate_bishop_attack(Board* board, int origin){
+    int col = origin % 8;
+    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
+
+    /* RULD attack */
+    uint64_t occupancy_key = generate_ruld_occupancy_key(origin, occupancy);
+    uint64_t attack = occupancy_table_lookup(col, occupancy_key);
+    attack = ((attack * attack_data.col[0]) & attack_data.ruld[RULD_INDEX(origin)]); // Convert attack row to ruld diag, isolate bits
+    
+    board->attack_from[origin] |= attack;
+
+    /* LURD attack */
+    occupancy_key = generate_lurd_occupancy_key(origin, occupancy);
+    attack = occupancy_table_lookup(col, occupancy_key);
+    attack = ((attack * attack_data.col[0]) & attack_data.lurd[LURD_INDEX(origin)]); // Convert attack row to lurd diag, isolate bits
+
+    board->attack_from[origin] |= attack;
+}
+
+/* Populate legal_to and legal_from to reflect legal moves from a rook at bit index origin */
 void populate_rook_attack(Board* board, int origin){
     int col = origin % 8;
     int row = origin / 8;
@@ -103,37 +98,17 @@ void populate_rook_attack(Board* board, int origin){
 
     /* Row attack */
     uint64_t occupancy_key = generate_row_occupancy_key(row, occupancy);
-    uint64_t attack = occupancy_table_lookup(col, occupancy_key) << (8*row); // Perform lookup
+    uint64_t attack = occupancy_table_lookup(col, occupancy_key) << (8*row);
 
     board->attack_from[origin] |= attack;
 
     /* Column attack */
     occupancy_key = generate_col_occupancy_key(col, occupancy);
-    attack = occupancy_table_lookup(row, occupancy_key); // Perform lookup
+    attack = occupancy_table_lookup(row, occupancy_key);
 
-    attack = attack * attack_data.ruld[0]; // Multiply to convert row to col. Data is in rightmost column
+    attack = attack * attack_data.ruld[RULD_INDEX(0)]; // Multiply to convert row to col. Data is in rightmost column
     attack = swap_uint64(attack); // Vertical flip by reversing
     attack = (attack >> (7 - col)) & attack_data.col[col]; // Shift to appropriate position and isolate the resulting attack column
-
-    board->attack_from[origin] |= attack;
-}
-
-void populate_bishop_attack(Board* board, int origin){
-    int col = origin % 8;
-    int row = origin / 8;
-    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
-
-    /* RULD attack */
-    uint64_t occupancy_key = generate_ruld_occupancy_key(origin, occupancy);
-    uint64_t attack = occupancy_table_lookup(col, occupancy_key);
-    attack = ((attack * attack_data.col[0]) & attack_data.ruld[origin]); // Convert attack row to ruld diag, isolate bits
-    
-    board->attack_from[origin] |= attack;
-
-    /* LURD attack */
-    occupancy_key = generate_lurd_occupancy_key(origin, occupancy);
-    attack = occupancy_table_lookup(col, occupancy_key);
-    attack = ((attack * attack_data.col[0]) & attack_data.lurd[origin]); // Convert attack row to lurd diag, isolate bits
 
     board->attack_from[origin] |= attack;
 }
@@ -143,18 +118,61 @@ void populate_queen_attack(Board* board, int origin){
     populate_bishop_attack(board, origin);
 }
 
-void populate_all_rook_attacks(Board* board){
-
+void populate_pawn_attack(Board* board, int origin, int color){
+    board->attack_from[origin] = color ? attack_data.pawn_white[origin] : attack_data.pawn_black[origin];
 }
-void populate_all_bishop_attacks(Board* board){
-
+void populate_knight_attack(Board* board, int origin){
+    board->attack_from[origin] = attack_data.knight[origin];
+}
+void populate_king_attack(Board* board, int origin){
+    board->attack_from[origin] = attack_data.king[origin];
 }
 
-void populate_all_queen_attacks(Board* board){
+void populate_attack_from(Board* board){
+    int pieces = board->pieces[Pawn] & board->pieces[White];
+    while(pieces){
+        populate_pawn_attack(board, get_lsb_index(pieces), 1);
+        pieces &= pieces - 1;
+    }
 
+    pieces = board->pieces[Pawn] & board->pieces[Black];
+    while(pieces){
+        populate_pawn_attack(board, get_lsb_index(pieces), 0);
+        pieces &= pieces - 1;
+    }
+
+    pieces = board->pieces[Knight];
+    while(pieces){
+        populate_knight_attack(board, get_lsb_index(pieces));
+        pieces &= pieces - 1;
+    }
+
+    pieces = board->pieces[Bishop];
+    while(pieces){
+        populate_bishop_attack(board, get_lsb_index(pieces));
+        pieces &= pieces - 1;
+    }
+
+    pieces = board->pieces[Rook];
+    while(pieces){
+        populate_rook_attack(board, get_lsb_index(pieces));
+        pieces &= pieces - 1;
+    }
+
+    pieces = board->pieces[Queen];
+    while(pieces){
+        populate_queen_attack(board, get_lsb_index(pieces));
+        pieces &= pieces - 1;
+    }
+
+    pieces = board->pieces[King];
+    while(pieces){
+        populate_king_attack(board, get_lsb_index(pieces));
+        pieces &= pieces - 1;
+    }
 }
 
-void generate_occupancy_table(){
+static void generate_occupancy_table(){
     for(int i=0;i<8;i++){
         for(int j=0;j<64;j++){
             uint64_t result = 0;
@@ -178,6 +196,28 @@ void generate_occupancy_table(){
     }
 }
 
+static void compute_diagonal_ruld(int index) {
+    attack_data.ruld[index] = 0;
+
+    for (int col = 0; col < 8; col++) {
+        int row = col + (index - 7);
+        if (row >= 0 && row < 8) {  // Ensure row is valid
+            int pos = row * 8 + col;
+            attack_data.ruld[index] |= U64_MASK(pos);
+        }
+    }
+}
+
+static void compute_diagonal_lurd(int index) {
+    attack_data.lurd[index] = 0;
+    for (int row = 0; row < 8; row++) {
+        int col = index - row;
+        if (col >= 0 && col < 8) {  // Ensure col is valid
+            int pos = row * 8 + col;
+            attack_data.lurd[index] |= U64_MASK(pos);
+        }
+    }
+}
 
 void initialize_attack_data(){
     for(int i=0;i<8;i++){ // Row
@@ -187,11 +227,9 @@ void initialize_attack_data(){
         attack_data.col[i] = (uint64_t)0b100000001000000010000000100000001000000010000000100000001 << i;
     }
 
-    for(int i=0;i<64;i++){ // Right-Up Left-Down Diagonal
-        compute_diagonal_ruld(attack_data.ruld, i);
-    }
-    for(int i=0;i<64;i++){ // Left-Up Right-Down Diagonal
-        compute_diagonal_lurd(attack_data.lurd, i);
+    for(int i=0;i<15;i++){ // Right-Up Left-Down Diagonal
+        compute_diagonal_ruld(i);
+        compute_diagonal_lurd(i);
     }
 
     compute_king_attacks();

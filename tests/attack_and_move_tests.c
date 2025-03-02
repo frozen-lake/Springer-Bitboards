@@ -49,16 +49,6 @@ int test_parse_algebraic_move(){
 	return Nf3 == (6 << 6) + 21 && e4 == (12 << 6) + 28;
 }
 
-int test_populate_pawn_attack(){
-	return 0;
-}
-
-int test_populate_knight_attack(){
-	return 0;
-}
-int test_populate_king_attack(){
-	return 0;
-}
 
 int test_populate_rook_attack(){
 	/* Test single square rook attack population */
@@ -119,6 +109,22 @@ int test_populate_queen_attack(){
 	return success;
 }
 
+int test_populate_knight_attack(){
+	Game* game = create_game();
+
+	destroy_game(game);
+
+	return 0;
+}
+int test_populate_pawn_attack(){
+	int success =  attack_data.pawn_black[28] == (U64_MASK(19) | U64_MASK(21));
+	success = success && attack_data.pawn_white[27] == (U64_MASK(34) | U64_MASK(36));
+	return success;
+}
+int test_populate_king_attack(){
+	return 0;
+}
+
 int test_generate_occupancy_table(){
 
 	int success = attack_data.occupancy_table[4][0b101001] == 0b1101110;
@@ -149,7 +155,7 @@ void move_tests(){
 
 void attack_tests(){
 	
-	int num_tests = 4;
+	int num_tests = 5;
 
 	int (*test_cases[num_tests])();
 	char* test_case_names[num_tests];
@@ -157,12 +163,14 @@ void attack_tests(){
 	test_cases[0] = test_populate_rook_attack;
 	test_cases[1] = test_populate_bishop_attack;
 	test_cases[2] = test_populate_queen_attack;
-	test_cases[3] = test_generate_occupancy_table;
+	test_cases[3] = test_populate_pawn_attack;
+	test_cases[4] = test_generate_occupancy_table;
 
 	test_case_names[0] = "test_populate_rook_attack";
 	test_case_names[1] = "test_populate_bishop_attack";
 	test_case_names[2] = "test_populate_queen_attack";
-	test_case_names[3] = "test_generate_occupancy_table";
+	test_case_names[3] = "test_populate_pawn_attack";
+	test_case_names[4] = "test_generate_occupancy_table";
 
     run_tests(test_cases, test_case_names, num_tests);
 }

@@ -19,10 +19,10 @@ enum Piece {
 
 typedef struct {
 
-	uint64_t pieces[8];
-
 	uint64_t attack_to[64];
 	uint64_t attack_from[64]; 
+	uint64_t pieces[8];
+
 
 } Board;
 
@@ -41,5 +41,6 @@ void print_board(Board* board);
 
 void print_bitboard(uint64_t);
 
-
+int get_piece_on_square(int square, Board* board);
+char* piece_to_string(int piece);
 

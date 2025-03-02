@@ -128,3 +128,11 @@ int load_fen(Game* game, char* str){
 	return 1;
 }
 
+
+uint64_t swap_uint64(uint64_t num){
+    return __builtin_bswap64(num);
+}
+
+int get_lsb_index(uint64_t num){
+    return __builtin_ctzll(num);
+}

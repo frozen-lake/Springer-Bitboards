@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include "game.h"
+#include "move.h"
 
 /* Convert algebraic notation to numeric square index: "e4" --> 28 */
 int parse_square(char *square) {
@@ -73,3 +74,58 @@ int parse_algebraic_move(char* input, Board *board) {
 
     return (source << 6) + destination; // Return the encoded move
 }
+
+void print_move(Move move){
+    int src = move & 0b111111;
+    int dest = (move >> 6) & 0b111111;
+    int piece = (move >> 12) & 0b111;
+    int capture = (move >> 15) & 0b111;
+    int promotion = (move >> 18) & 0b111;
+    int special = (move >> 21) & 0b11;
+
+    printf("{move: %x, src: %d, dest: %d, piece: %s, capture: %s, special: %d, promotion: %d}\n",
+        move, src, dest, piece_to_string(piece), piece_to_string(capture), special, promotion);
+}
+
+void move_list_add(MoveList* move_list, Move move){
+    if(move_list->size < MAX_MOVES){
+        move_list->moves[move_list->size] = move;
+        move_list->size += 1;
+    }
+}
+
+void move_list_clear(MoveList* move_list){
+    move_list->size = 0;
+}
+
+void print_moves(MoveList* move_list){
+    printf("MoveList (%d moves):\n", move_list->size);
+    int size = move_list->size;
+    for(int i=0;i<size;i++){
+        print_move(move_list->moves[i]);
+    }
+}
+
+
+Move encode_move(int src, int dest, Board* board){
+    Move move = 0;
+
+    move |= (src & 0b111111);
+    move |= (dest & 0b111111) << 6;
+
+    int piece = get_piece_on_square(src, board);
+    int capture = get_piece_on_square(dest, board);
+
+    move |= piece << 12;
+    move |= capture << 15;
+
+    // promotion bits and special bits left for later
+    
+    return move;
+}
+
+Move encode_promotion(int src, int dest, Board* board, int promotion){
+    return encode_move(src, dest, board) | (promotion << 18);
+}
+
+
