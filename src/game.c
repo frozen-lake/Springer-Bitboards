@@ -4,6 +4,7 @@
 #include <string.h>
 #include "game.h"
 #include "board.h"
+#include "move.h"
 #include "attack_data.h"
 
 
@@ -26,6 +27,7 @@ void destroy_game(Game* game){
 /* Set the Board. */
 void initialize_game(Game* game){
 	initialize_board(game->board);
+	game->side_to_move = 1;
 }
 
 /* Load a position from a FEN String (Forsyth-Edwards Notation.) */
@@ -124,10 +126,83 @@ int load_fen(Game* game, char* str){
 	// printf("ranks: %s, %s, %s, %s, %s, %s, %s, %s\n", ranks[0], ranks[1], ranks[2], ranks[3], ranks[4], ranks[5], ranks[6], ranks[7]);
 
 	destroy_board(game->board);
+	populate_attack_from(board);
 	game->board = board;
+
 	return 1;
 }
 
+void make_move(Game* game, Move move){
+	/* Assume move is legal */
+	Board* board = game->board;
+	int color = game->side_to_move;
+
+	int dest = get_move_dest(move);
+	int src = get_move_src(move);
+	int piece_type = get_move_piece(move);
+	int capture = get_move_capture(move);
+
+	/* Update piece bitboards */
+	board->pieces[piece_type] -= U64_MASK(src);
+	board->pieces[piece_type] += U64_MASK(dest);
+	if(capture != White){ // if no capture
+		board->pieces[capture] -= U64_MASK(dest);
+	}
+
+	/* Update attack_from at src and dest */
+	board->attack_from[src] = 0;
+	board->attack_from[dest] = 0;
+	generate_attacks(board, dest, piece_type, color);
+
+	/* Update color bitboards */
+	if(color){
+		board->pieces[White] += U64_MASK(dest);
+		board->pieces[White] -= U64_MASK(src);
+		board->pieces[Black] &= (-1 - U64_MASK(dest));
+	} else {
+		board->pieces[Black] += U64_MASK(dest);
+		board->pieces[Black] -= U64_MASK(src);
+		board->pieces[White] &= (-1 - U64_MASK(dest));
+	}
+	uint64_t occupancy = board->pieces[White] | board->pieces[Black];
+
+	/* Incremental update rays at src and dest */
+
+	uint64_t update_cols = (attack_data.col[src] | attack_data.col[dest]) & (board->pieces[Rook] | board->pieces[Queen]);
+	uint64_t update_rows = (attack_data.row[src] | attack_data.row[dest]) & (board->pieces[Rook] | board->pieces[Queen]);
+
+	while(update_cols){
+		int update_src = get_lsb_index(update_cols);
+		update_cols &= update_cols - 1;
+		populate_col_attack(board, update_src, occupancy);
+	}
+	while(update_rows){
+		int update_src = get_lsb_index(update_rows);
+		update_rows &= update_rows - 1;
+		populate_row_attack(board, update_src, occupancy);
+	}
+
+
+	uint64_t update_ruld = (attack_data.ruld[RULD_INDEX(src)] | attack_data.ruld[RULD_INDEX(dest)]) & (board->pieces[Bishop] | board->pieces[Queen]);
+	uint64_t update_lurd = (attack_data.lurd[LURD_INDEX(src)] | attack_data.lurd[LURD_INDEX(dest)]) & (board->pieces[Bishop] | board->pieces[Queen]);
+
+	while(update_ruld){
+		int update_src = get_lsb_index(update_ruld);
+		update_ruld &= update_ruld - 1;
+		populate_ruld_attack(board, update_src, occupancy);
+	}
+	while(update_lurd){
+		int update_src = get_lsb_index(update_lurd);
+		update_lurd &= update_lurd - 1;
+		populate_lurd_attack(board, update_src, occupancy);
+	}
+
+	game->side_to_move = !(game->side_to_move);
+
+}
+void undo_move(Game* game, Move move){
+
+}
 
 uint64_t swap_uint64(uint64_t num){
     return __builtin_bswap64(num);

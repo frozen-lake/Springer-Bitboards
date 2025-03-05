@@ -1,4 +1,6 @@
-#include "game.h"
+#include <stdint.h>
+#include "board.h"
+#include "attack_data.h"
 
 #ifndef MOVE_H
 #define MOVE_H
@@ -18,6 +20,8 @@ typedef uint32_t Move;
 */
 
 
+
+
 typedef struct MoveList MoveList;
 
 struct MoveList {
@@ -27,12 +31,26 @@ struct MoveList {
 
 #endif
 
+#ifndef GAME_H
+typedef struct Game Game;
+struct Game;
+#endif
+
+
+int get_move_src(Move move);
+int get_move_dest(Move move);
+int get_move_piece(Move move);
+int get_move_capture(Move move);
+int get_move_promotion(Move move);
+int get_move_special(Move move);
+
 int parse_square(char* square);
 int find_source_square(Board *board, char piece, int destination, char file_hint, int rank_hint);
-int parse_algebraic_move(char* input, Board *board);
+int parse_algebraic_move(char* input, Game* game);
 
 void print_move(Move move);
 void print_moves(MoveList* move_list);
+
 
 void move_list_add(MoveList* move_list, Move move);
 void move_list_clear(MoveList* move_list);

@@ -30,6 +30,12 @@ extern AttackData attack_data;
 uint64_t occupancy_table_lookup(int index, int occupancy_key);
 
 /* Set board attack_to and attack_from based on occupancy and attack range */
+
+void populate_row_attack(Board* board, int origin, uint64_t occupancy);
+void populate_col_attack(Board* board, int origin, uint64_t occupancy);
+void populate_ruld_attack(Board* board, int origin, uint64_t occupancy);
+void populate_lurd_attack(Board* board, int origin, uint64_t occupancy);
+
 void populate_pawn_attack(Board* board, int origin, int color);
 void populate_knight_attack(Board* board, int origin);
 void populate_king_attack(Board* board, int origin);
@@ -38,5 +44,6 @@ void populate_rook_attack(Board* board, int origin);
 void populate_queen_attack(Board* board, int origin);
 
 void populate_attack_from(Board* board);
+void generate_attacks(Board* board, int pos, int piece_type, int color);
 
 void initialize_attack_data();

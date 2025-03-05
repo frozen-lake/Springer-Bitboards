@@ -3,10 +3,19 @@
 #include <string.h>
 #include "attack_and_move_tests.h"
 #include "move_gen_tests.h"
+#include "../src/game.h"
 #include "../src/move.h"
 #include "../src/attack_data.h"
 #include "../src/move_gen.h"
 
+int test_game_init(){
+	Game* game = create_game();
+	initialize_game(game);
+
+	int success = game->board->attack_from[6] & U64_MASK(21);
+
+	return success;
+}
 
 int test_load_fen(){
 	/* Nominal case */
@@ -21,11 +30,37 @@ int test_load_fen(){
 	}
 
 	success = success && (game->board->pieces[Pawn]) == ((1ULL << 28) | (1ULL << 36) | (1ULL << 30) | (1ULL << 31));
-	
+	success = success && (game->board->attack_from[33] == (uint64_t) 0b101000010000000000000001000000001010000000000000000);
+
 	destroy_game(game);
 	
 	/* Bad FEN should return -1 */
 	success = success && !load_fen(game, "4k3/8/8/1n3p3/4P1Pp/8/8/3BK3 b - g3 0 1");
+
+
+	return success;
+}
+
+int test_make_move(){
+	Game* game = create_game();
+	
+	char* fen = "4k3/8/8/1n2p3/4P1Pp/2P5/8/3BK3 b - g3 0 1";
+	int success = load_fen(game, fen);
+
+	Move move = 33 | (18 << 6) | (Knight << 12) | (Pawn << 15);
+	make_move(game, move);
+
+	/* Piece is off of source square */
+	success = success && ((game->board->pieces[Knight] & U64_MASK(33)) == 0);
+	success = success && ((game->board->pieces[Black] & U64_MASK(33)) == 0);
+
+	/* Piece is on destination square */
+	success = success && (game->board->pieces[Knight] & U64_MASK(18));
+	success = success && (game->board->pieces[Black] & U64_MASK(18));
+
+	/* Captured piece is gone */
+	success = success && ((game->board->pieces[Pawn] & U64_MASK(18)) == 0);
+	success = success && ((game->board->pieces[White] & U64_MASK(18)) == 0);
 
 	return success;
 }
@@ -47,14 +82,18 @@ int main(){
 	initialize_attack_data();
 
 
-	int num_tests = 1;
+	int num_tests = 3;
 
 	int (*test_cases[num_tests])(); // array of function pointers
 	char* test_case_names[num_tests];
 
 	test_cases[0] = test_load_fen;
+	test_cases[1] = test_make_move;
+	test_cases[2] = test_game_init;
 
 	test_case_names[0] = "test_load_fen";
+	test_case_names[1] = "test_make_move";
+	test_case_names[2] = "test_game_init";
 
 
 	printf("====== GAME TESTS ======\n");

@@ -5,6 +5,13 @@
 #include "game.h"
 #include "move.h"
 
+int get_move_src(Move move){ return move & 0b111111; }
+int get_move_dest(Move move){ return (move >> 6) & 0b111111; }
+int get_move_piece(Move move){ return (move >> 12) & 0b111; }
+int get_move_capture(Move move){ return (move >> 15) & 0b111; }
+int get_move_promotion(Move move){ return (move >> 18) & 0b111; }
+int get_move_special(Move move){ return (move >> 21) & 0b11; }
+
 /* Convert algebraic notation to numeric square index: "e4" --> 28 */
 int parse_square(char *square) {
     if (strlen(square) != 2 || square[0] < 'a' || square[0] > 'h' || square[1] < '1' || square[1] > '8') {
@@ -17,9 +24,14 @@ int parse_square(char *square) {
 
 /* Find the source square given the piece type and destination square */
 int find_source_square(Board *board, char piece, int destination, char file_hint, int rank_hint) {
+    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
     for (int i=0; i<64; i++) {
-        if (position_to_piece(board, i) == piece) { 
-            if(board->attack_to[i] & (1 << destination)) {
+        if (position_to_piece_char(board, i) == piece) { 
+            if(piece == 'P'){
+                if(((i+8 == destination) || ((i+16 == destination) && i/8 == 1)) && !(occupancy & U64_MASK(destination))){ return i; }
+            } else if(piece == 'p'){
+                if(((i-8 == destination) || ((i-16 == destination) && i/8 == 6)) && !(occupancy & U64_MASK(destination))){ return i; }
+            } else if(board->attack_from[i] & U64_MASK(destination)) {
                 if (file_hint && (i%8) != (file_hint-'a')) {
                     continue;
                 }
@@ -34,7 +46,8 @@ int find_source_square(Board *board, char piece, int destination, char file_hint
 }
 
 /* Convert algebraic notation move to integer encoded source/dest squares */
-int parse_algebraic_move(char* input, Board *board) {
+int parse_algebraic_move(char* input, Game* game) {
+    Board* board = game->board;
     char piece = 'P'; // Default to pawn
     char file_hint = '\0';
     int rank_hint = -1;
@@ -46,6 +59,8 @@ int parse_algebraic_move(char* input, Board *board) {
         piece = input[0];
         i++;
     }
+
+    if(!(game->side_to_move)){ piece = tolower(piece); }
 
     /* Check for disambiguation */
     if (isalpha(input[i]) && input[i + 1] >= '1' && input[i + 1] <= '8') { // No disambiguation
@@ -66,13 +81,14 @@ int parse_algebraic_move(char* input, Board *board) {
     }
 
     /* Find the source square */
-    int source = find_source_square(board, piece, destination, file_hint, rank_hint);
-    if (DEBUG && source < 0) {
-	fprintf(stderr, "No valid source square found for move: %s\npiece: %c, dest: %d, fhint: %d, rhint: %d, source: %d\n", input, piece, destination, file_hint, rank_hint, source);
+    int src = find_source_square(board, piece, destination, file_hint, rank_hint);
+    if (DEBUG && src < 0) {
+	fprintf(stderr, "No valid source square found for move: %spiece: %c, dest: %d, fhint: %d, rhint: %d, source: %d\n",
+        input, piece, destination, file_hint, rank_hint, src);
         return -1;
     }
 
-    return (source << 6) + destination; // Return the encoded move
+    return encode_move(src, destination, board); // Return the encoded move
 }
 
 void print_move(Move move){
@@ -83,7 +99,7 @@ void print_move(Move move){
     int promotion = (move >> 18) & 0b111;
     int special = (move >> 21) & 0b11;
 
-    printf("{move: %x, src: %d, dest: %d, piece: %s, capture: %s, special: %d, promotion: %d}\n",
+    printf("{move: 0x%x, src: %d, dest: %d, piece: %s, capture: %s, special: %d, promotion: %d}\n",
         move, src, dest, piece_to_string(piece), piece_to_string(capture), special, promotion);
 }
 
@@ -113,8 +129,8 @@ Move encode_move(int src, int dest, Board* board){
     move |= (src & 0b111111);
     move |= (dest & 0b111111) << 6;
 
-    int piece = get_piece_on_square(src, board);
-    int capture = get_piece_on_square(dest, board);
+    int piece = position_to_piece_number(board, src);
+    int capture = position_to_piece_number(board, dest);
 
     move |= piece << 12;
     move |= capture << 15;

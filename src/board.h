@@ -19,7 +19,6 @@ enum Piece {
 
 typedef struct {
 
-	uint64_t attack_to[64];
 	uint64_t attack_from[64]; 
 	uint64_t pieces[8];
 
@@ -30,7 +29,8 @@ typedef struct {
 
 
 
-char position_to_piece(Board* board, int pos);
+char position_to_piece_char(Board* board, int pos);
+int position_to_piece_number(Board* board, int pos);
 
 Board* create_board();
 void destroy_board(Board* board);
@@ -41,6 +41,5 @@ void print_board(Board* board);
 
 void print_bitboard(uint64_t);
 
-int get_piece_on_square(int square, Board* board);
 char* piece_to_string(int piece);
 

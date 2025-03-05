@@ -5,7 +5,6 @@
 AttackData attack_data = {}; // globally declared, statically allocated
 
 
-
 static void compute_knight_attacks(){
     for(int i=0;i<64;i++){
         if(i%8 > 0 && i/8 < 6) attack_data.knight[i] |= U64_MASK(15+i);
@@ -24,7 +23,7 @@ static void compute_king_attacks(){
         if(i/8 < 7) attack_data.king[i] |= U64_MASK(i+8);
         if(i/8 > 0) attack_data.king[i] |= U64_MASK(i-8);
         if(i%8 > 0) attack_data.king[i] |= U64_MASK(i-1);
-        if(i%8 < 0) attack_data.king[i] |= U64_MASK(i+1);
+        if(i%8 < 7) attack_data.king[i] |= U64_MASK(i+1);
         if(i/8 < 7 && i%8 > 0) attack_data.king[i] |= U64_MASK(i+7);
         if(i/8 < 7 && i%8 < 7) attack_data.king[i] |= U64_MASK(i+9);
         if(i/8 > 0 && i%8 > 0) attack_data.king[i] |= U64_MASK(i-9);
@@ -70,47 +69,59 @@ static uint64_t generate_lurd_occupancy_key(int origin, uint64_t occupancy){
     return occupancy_key;
 }
 
-/* Populate legal_to and legal_from to reflect legal moves from a Bishop at bit index origin */
-void populate_bishop_attack(Board* board, int origin){
-    int col = origin % 8;
-    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
 
-    /* RULD attack */
-    uint64_t occupancy_key = generate_ruld_occupancy_key(origin, occupancy);
-    uint64_t attack = occupancy_table_lookup(col, occupancy_key);
-    attack = ((attack * attack_data.col[0]) & attack_data.ruld[RULD_INDEX(origin)]); // Convert attack row to ruld diag, isolate bits
-    
-    board->attack_from[origin] |= attack;
-
-    /* LURD attack */
-    occupancy_key = generate_lurd_occupancy_key(origin, occupancy);
-    attack = occupancy_table_lookup(col, occupancy_key);
-    attack = ((attack * attack_data.col[0]) & attack_data.lurd[LURD_INDEX(origin)]); // Convert attack row to lurd diag, isolate bits
-
-    board->attack_from[origin] |= attack;
-}
-
-/* Populate legal_to and legal_from to reflect legal moves from a rook at bit index origin */
-void populate_rook_attack(Board* board, int origin){
+void populate_row_attack(Board* board, int origin, uint64_t occupancy){
     int col = origin % 8;
     int row = origin / 8;
-    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
-
-    /* Row attack */
     uint64_t occupancy_key = generate_row_occupancy_key(row, occupancy);
     uint64_t attack = occupancy_table_lookup(col, occupancy_key) << (8*row);
 
     board->attack_from[origin] |= attack;
-
-    /* Column attack */
-    occupancy_key = generate_col_occupancy_key(col, occupancy);
-    attack = occupancy_table_lookup(row, occupancy_key);
+}
+void populate_col_attack(Board* board, int origin, uint64_t occupancy){
+    int col = origin % 8;
+    int row = origin / 8;
+    uint64_t occupancy_key = generate_col_occupancy_key(col, occupancy);
+    uint64_t attack = occupancy_table_lookup(row, occupancy_key);
 
     attack = attack * attack_data.ruld[RULD_INDEX(0)]; // Multiply to convert row to col. Data is in rightmost column
     attack = swap_uint64(attack); // Vertical flip by reversing
     attack = (attack >> (7 - col)) & attack_data.col[col]; // Shift to appropriate position and isolate the resulting attack column
 
     board->attack_from[origin] |= attack;
+}
+void populate_ruld_attack(Board* board, int origin, uint64_t occupancy){
+    int col = origin % 8;
+    uint64_t occupancy_key = generate_ruld_occupancy_key(origin, occupancy);
+    uint64_t attack = occupancy_table_lookup(col, occupancy_key);
+    attack = ((attack * attack_data.col[0]) & attack_data.ruld[RULD_INDEX(origin)]); // Convert attack row to ruld diag, isolate bits
+    
+    board->attack_from[origin] |= attack;
+}
+void populate_lurd_attack(Board* board, int origin, uint64_t occupancy){
+    int col = origin % 8;
+    uint64_t occupancy_key = generate_lurd_occupancy_key(origin, occupancy);
+    uint64_t attack = occupancy_table_lookup(col, occupancy_key);
+    attack = ((attack * attack_data.col[0]) & attack_data.lurd[LURD_INDEX(origin)]); // Convert attack row to lurd diag, isolate bits
+
+    board->attack_from[origin] |= attack;
+}
+
+
+/* Populate legal_to and legal_from to reflect legal moves from a Bishop at bit index origin */
+void populate_bishop_attack(Board* board, int origin){
+    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
+
+    populate_ruld_attack(board, origin, occupancy);
+    populate_lurd_attack(board, origin, occupancy);   
+}
+
+/* Populate legal_to and legal_from to reflect legal moves from a rook at bit index origin */
+void populate_rook_attack(Board* board, int origin){
+    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
+
+    populate_row_attack(board, origin, occupancy);
+    populate_col_attack(board, origin, occupancy);
 }
 
 void populate_queen_attack(Board* board, int origin){
@@ -129,7 +140,8 @@ void populate_king_attack(Board* board, int origin){
 }
 
 void populate_attack_from(Board* board){
-    int pieces = board->pieces[Pawn] & board->pieces[White];
+    
+    uint64_t pieces = board->pieces[Pawn] & board->pieces[White];
     while(pieces){
         populate_pawn_attack(board, get_lsb_index(pieces), 1);
         pieces &= pieces - 1;
@@ -140,7 +152,6 @@ void populate_attack_from(Board* board){
         populate_pawn_attack(board, get_lsb_index(pieces), 0);
         pieces &= pieces - 1;
     }
-
     pieces = board->pieces[Knight];
     while(pieces){
         populate_knight_attack(board, get_lsb_index(pieces));
@@ -170,6 +181,31 @@ void populate_attack_from(Board* board){
         populate_king_attack(board, get_lsb_index(pieces));
         pieces &= pieces - 1;
     }
+}
+
+void generate_attacks(Board* board, int pos, int piece_type, int color){
+    switch(piece_type){
+		case Pawn:
+			populate_pawn_attack(board, pos, color);
+			break;
+		case Knight:
+			populate_knight_attack(board, pos);
+			break;
+		case Bishop:
+			populate_bishop_attack(board, pos);
+			break;
+		case Rook:
+			populate_rook_attack(board, pos);
+            break;
+        case Queen:
+            populate_queen_attack(board, pos);
+			break;
+		case King:
+			populate_king_attack(board, pos);
+			break;
+		default:
+			break;
+	}
 }
 
 static void generate_occupancy_table(){

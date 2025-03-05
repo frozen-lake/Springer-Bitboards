@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include "board.h"
+#include "attack_data.h"
 
 
 /* Create and return an empty Board. */
@@ -25,28 +26,18 @@ void initialize_board(Board* board){
 	board->pieces[Rook] = 129ULL + (129ULL << 56);
 	board->pieces[Queen] = 8ULL + (8ULL << 56);
 	board->pieces[King] = 16ULL + (16ULL << 56);
+
+	populate_attack_from(board);
 }
 
-/* Returns the character representing the piece at the given bit index. */
-char position_to_piece(Board* board, int pos){
-	char c = ' ';
-	uint64_t mask = 1ULL << pos;
-	if(board->pieces[Pawn] & mask) c = 'p';
-	if(board->pieces[Knight] & mask) c = 'n';
-	if(board->pieces[Bishop] & mask) c = 'b';
-	if(board->pieces[Rook] & mask) c = 'r';
-	if(board->pieces[Queen] & mask) c = 'q';
-	if(board->pieces[King] & mask) c = 'k';
-	if(board->pieces[White] & mask) c = toupper(c);
-	return c; // No piece on this square
-}
+
 
 /* Prints the board state. */
 void print_board(Board* board){
 	for(int i=7;i>=0;i--){
-		printf("| %c", position_to_piece(board, i*8));
+		printf("| %c", position_to_piece_char(board, i*8));
 		for(int j=1;j<8;j++){
-			printf(" | %c", position_to_piece(board, i*8 + j));
+			printf(" | %c", position_to_piece_char(board, i*8 + j));
 		}
 		printf(" |\n");	
 	}
@@ -57,7 +48,6 @@ void print_board(Board* board){
 void empty_board(Board* board){
 	board->pieces[Black] = board->pieces[White] = board->pieces[Pawn] = board->pieces[Knight] = board->pieces[Bishop] = board->pieces[Rook] = board->pieces[Queen] = board->pieces[King] = 0;
 	for(int i=0;i<64;i++){
-		board->attack_to[i] = 0;
 		board->attack_from[i] = 0;
 	}
 }
@@ -74,9 +64,22 @@ void print_bitboard(uint64_t bb){
 	printf("=================================\n");
 	
 }
+/* Returns the character representing the piece at the given bit index. */
+char position_to_piece_char(Board* board, int pos){
+	char c = ' ';
+	uint64_t mask = U64_MASK(pos);
+	if(board->pieces[Pawn] & mask) c = 'p';
+	if(board->pieces[Knight] & mask) c = 'n';
+	if(board->pieces[Bishop] & mask) c = 'b';
+	if(board->pieces[Rook] & mask) c = 'r';
+	if(board->pieces[Queen] & mask) c = 'q';
+	if(board->pieces[King] & mask) c = 'k';
+	if(board->pieces[White] & mask) c = toupper(c);
+	return c; // No piece on this square
+}
 
-int get_piece_on_square(int square, Board* board){
-	uint64_t mask = U64_MASK(square);
+int position_to_piece_number(Board* board, int pos){
+	uint64_t mask = U64_MASK(pos);
 	if(board->pieces[Pawn] & mask) return Pawn;
 	if(board->pieces[Knight] & mask) return Knight;
 	if(board->pieces[Bishop] & mask) return Bishop;
