@@ -63,14 +63,18 @@ int parse_algebraic_move(char* input, Game* game) {
     if(!(game->side_to_move)){ piece = tolower(piece); }
 
     /* Check for disambiguation */
-    if (isalpha(input[i]) && input[i + 1] >= '1' && input[i + 1] <= '8') { // No disambiguation
-        strncpy(destination_square, &input[i], 2);
-    } else if (isalpha(input[i]) && isalpha(input[i + 1])) { // File disambiguation
-        file_hint = input[i];
-        strncpy(destination_square, &input[i + 1], 2);
-    } else if (isdigit(input[i]) && isalpha(input[i + 1])) { // Rank disambiguation
-        rank_hint = input[i] - '1';
-        strncpy(destination_square, &input[i + 1], 2);
+    if(input[1] != 'x'){
+        if (isalpha(input[i]) && input[i + 1] >= '1' && input[i + 1] <= '8') { // No disambiguation
+            strncpy(destination_square, &input[i], 2);
+        } else if (isalpha(input[i]) && isalpha(input[i + 1])) { // File disambiguation
+            file_hint = input[i];
+            strncpy(destination_square, &input[i + 1], 2);
+        } else if (isdigit(input[i]) && isalpha(input[i + 1])) { // Rank disambiguation
+            rank_hint = input[i] - '1';
+            strncpy(destination_square, &input[i + 1], 2);
+        }
+    } else {
+        strncpy(destination_square, &input[2], 2); // capture dest
     }
 
     /* Parse destination square */
@@ -78,6 +82,17 @@ int parse_algebraic_move(char* input, Game* game) {
     if (DEBUG && destination < 0) {
         fprintf(stderr, "Invalid destination square: %s\n", destination_square);
         return -1;
+    }
+
+    /* Check for pawn capture */
+    if(strlen(input) == 5 && strchr("abcdefgh", input[0]) && (input[1]=='x')){
+        int src = input[0] - 97; // Column
+        if(game->side_to_move){ // Row
+            src += 8 * (input[3] - 50);
+        } else {
+            src += 8 * (input[3] - 48);
+        }
+        return encode_move(src, destination, board);
     }
 
     /* Find the source square */
@@ -101,6 +116,11 @@ void print_move(Move move){
 
     printf("{move: 0x%x, src: %d, dest: %d, piece: %s, capture: %s, special: %d, promotion: %d}\n",
         move, src, dest, piece_to_string(piece), piece_to_string(capture), special, promotion);
+}
+
+void move_list_init(MoveList* move_list){  
+    move_list->size = 0;
+    move_list->capacity = MAX_MOVES;
 }
 
 void move_list_add(MoveList* move_list, Move move){
@@ -135,7 +155,7 @@ Move encode_move(int src, int dest, Board* board){
     move |= piece << 12;
     move |= capture << 15;
 
-    // promotion bits and special bits left for later
+    /* Promotion bits and special bits left for later */
     
     return move;
 }

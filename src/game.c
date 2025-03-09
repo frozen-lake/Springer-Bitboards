@@ -12,6 +12,11 @@
 Game* create_game(){
 	Game* game = calloc(1, sizeof(Game));
 	game->board = create_board();
+	game->side_to_move = 1;
+	game->game_length = 0;
+
+	game->move_history_capacity = MAX_MOVES;
+	game->move_history = (Move*) calloc(game->move_history_capacity, 4);
 	return game;
 }
 
@@ -48,6 +53,9 @@ int load_fen(Game* game, char* str){
 		// printf("field[%d]: %s\n", i, fen_field[i]);
 	}
 
+	if(fen_field[1]){
+		game->side_to_move = (fen_field[1][0] == 'b') ? 0 : 1;
+	}
 	
 	// Split field 0 into ranks by '/'	
 	strcpy(fen, fen_field[0]);
@@ -74,7 +82,8 @@ int load_fen(Game* game, char* str){
 			if(isdigit(c)){
 				int p = (int) (c - '0');
 				if(file + p > 8){
-					free(board); return 0;
+					free(board);
+					return 0;
 				}
 				file += p;
 			} else if(isalpha(c)){
@@ -132,6 +141,7 @@ int load_fen(Game* game, char* str){
 	return 1;
 }
 
+
 void make_move(Game* game, Move move){
 	/* Assume move is legal */
 	Board* board = game->board;
@@ -168,8 +178,8 @@ void make_move(Game* game, Move move){
 
 	/* Incremental update rays at src and dest */
 
-	uint64_t update_cols = (attack_data.col[src] | attack_data.col[dest]) & (board->pieces[Rook] | board->pieces[Queen]);
-	uint64_t update_rows = (attack_data.row[src] | attack_data.row[dest]) & (board->pieces[Rook] | board->pieces[Queen]);
+	uint64_t update_cols = (attack_data.col[COL_INDEX(src)] | attack_data.col[COL_INDEX(dest)]) & (board->pieces[Rook] | board->pieces[Queen]);
+	uint64_t update_rows = (attack_data.row[ROW_INDEX(src)] | attack_data.row[ROW_INDEX(dest)]) & (board->pieces[Rook] | board->pieces[Queen]);
 
 	while(update_cols){
 		int update_src = get_lsb_index(update_cols);
@@ -197,8 +207,17 @@ void make_move(Game* game, Move move){
 		populate_lurd_attack(board, update_src, occupancy);
 	}
 
-	game->side_to_move = !(game->side_to_move);
 
+	/* Update move_history */
+	if(game->game_length >= game->move_history_capacity){
+		game->move_history_capacity *= 2;
+		game->move_history = (Move*) realloc(game->move_history, game->move_history_capacity * 4);
+	}
+	game->move_history[game->game_length] = move;
+	game->game_length += 1;
+
+
+	game->side_to_move = !(game->side_to_move);
 }
 void undo_move(Game* game, Move move){
 

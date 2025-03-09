@@ -10,8 +10,13 @@
 typedef struct Game Game;
 
 struct Game {
+	MoveList legal_moves;
+	Move* move_history;
 	Board* board;
 	int side_to_move;
+	int game_length;
+	int move_history_capacity;
+
 
 	/* 1 bit for white kingside, 1 bit for white queenside
 	 * 1 bit for black kingside, 1 bit for black queenside */

@@ -27,6 +27,7 @@ typedef struct MoveList MoveList;
 struct MoveList {
     Move moves[MAX_MOVES];
     int size;
+    int capacity;
 };
 
 #endif
@@ -52,6 +53,7 @@ void print_move(Move move);
 void print_moves(MoveList* move_list);
 
 
+void move_list_init(MoveList* move_list);
 void move_list_add(MoveList* move_list, Move move);
 void move_list_clear(MoveList* move_list);
 
