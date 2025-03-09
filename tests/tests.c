@@ -14,6 +14,7 @@ int test_game_init(){
 
 	int success = game->board->attack_from[6] & U64_MASK(21);
 
+	destroy_game(game);
 	return success;
 }
 
@@ -32,13 +33,14 @@ int test_load_fen(){
 
 	success = success && (game->board->pieces[Pawn]) == ((1ULL << 28) | (1ULL << 36) | (1ULL << 30) | (1ULL << 31));
 	success = success && (game->board->attack_from[33] == (uint64_t) 0b101000010000000000000001000000001010000000000000000);
-
-	destroy_game(game);
+	success = success && (game->board->pieces[White] == 0b1010000000000000000000000011000);
+	success = success && (game->board->pieces[Black] == 0b1000000000000000000000001001010000000000000000000000000000000);
 	
 	/* Bad FEN should return -1 */
 	success = success && !load_fen(game, "4k3/8/8/1n3p3/4P1Pp/8/8/3BK3 b - g3 0 1");
 
 
+	destroy_game(game);
 	return success;
 }
 
@@ -55,17 +57,15 @@ int test_make_move(){
 	success = success && ((game->board->pieces[Knight] & U64_MASK(33)) == 0);
 	success = success && ((game->board->pieces[Black] & U64_MASK(33)) == 0);
 
-	printf("is %d\n", success);
 	/* Piece is on destination square */
 	success = success && (game->board->pieces[Knight] & U64_MASK(18));
 	success = success && (game->board->pieces[Black] & U64_MASK(18));
-	printf("is %d\n", success);
 
 	/* Captured piece is gone */
 	success = success && ((game->board->pieces[Pawn] & U64_MASK(18)) == 0);
 	success = success && ((game->board->pieces[White] & U64_MASK(18)) == 0);
-	printf("is %d\n", success);
 
+	destroy_game(game);
 	return success;
 }
 

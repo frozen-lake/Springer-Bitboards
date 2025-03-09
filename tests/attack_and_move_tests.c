@@ -38,7 +38,7 @@ int test_find_source_square2(){
 
 	int Nf3_src = find_source_square(board, 'N', 21, 0, -1);
 
-
+	destroy_game(game);
 	return Nf3_src == 6;
 }
 
@@ -50,8 +50,11 @@ int test_parse_algebraic_move(){
 	Move Nf3 = parse_algebraic_move("Nf3", game);
 	Move e4 = parse_algebraic_move("e4", game);
 	
+    int success = Nf3 == (6 | (21 << 6) | (Knight << 12));
+    success = success && e4 == (12 | (28 << 6) | (Pawn << 12));
+
 	destroy_board(board);
-	return Nf3 == 0x31546 && e4 == 0x3070c;
+	return success;
 }
 
 

@@ -27,7 +27,6 @@ typedef struct MoveList MoveList;
 struct MoveList {
     Move moves[MAX_MOVES];
     int size;
-    int capacity;
 };
 
 #endif

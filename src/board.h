@@ -6,14 +6,14 @@
 #define U64_MASK(n) (UINT64_C(1) << (n))
 
 enum Piece {
+	Black,
+	White,
 	Pawn,
 	Knight,
 	Bishop,
 	Rook,
-	Queen,
 	King,
-	White,
-	Black
+	Queen,
 };
 
 

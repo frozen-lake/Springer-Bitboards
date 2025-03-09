@@ -15,6 +15,7 @@ Game* create_game(){
 	game->side_to_move = 1;
 	game->game_length = 0;
 
+	move_list_init(&game->legal_moves);
 	game->move_history_capacity = MAX_MOVES;
 	game->move_history = (Move*) calloc(game->move_history_capacity, 4);
 	return game;
@@ -155,7 +156,7 @@ void make_move(Game* game, Move move){
 	/* Update piece bitboards */
 	board->pieces[piece_type] -= U64_MASK(src);
 	board->pieces[piece_type] += U64_MASK(dest);
-	if(capture != White){ // if no capture
+	if(capture != 0){ // if no capture
 		board->pieces[capture] -= U64_MASK(dest);
 	}
 

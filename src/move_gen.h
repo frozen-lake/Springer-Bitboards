@@ -16,4 +16,4 @@ void generate_pawn_moves(MoveList* move_list, Game* game, int color);
 void generate_king_moves(MoveList* move_list, Game* game, int color);
 
 void generate_all_moves(MoveList* move_list, Game* game, int color);
-void generate_moves(uint64_t movers, MoveList* move_list, Game* game);
+void generate_moves(uint64_t movers, MoveList* move_list, Game* game, int color);

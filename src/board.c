@@ -86,7 +86,7 @@ int position_to_piece_number(Board* board, int pos){
 	if(board->pieces[Rook] & mask) return Rook;
 	if(board->pieces[Queen] & mask) return Queen;
 	if(board->pieces[King] & mask) return King;
-	return White; // value for no piece
+	return 0; // value for no piece
 }
 
 char* piece_to_string(int piece){

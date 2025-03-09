@@ -120,7 +120,6 @@ void print_move(Move move){
 
 void move_list_init(MoveList* move_list){  
     move_list->size = 0;
-    move_list->capacity = MAX_MOVES;
 }
 
 void move_list_add(MoveList* move_list, Move move){
@@ -128,10 +127,6 @@ void move_list_add(MoveList* move_list, Move move){
         move_list->moves[move_list->size] = move;
         move_list->size += 1;
     }
-}
-
-void move_list_clear(MoveList* move_list){
-    move_list->size = 0;
 }
 
 void print_moves(MoveList* move_list){
