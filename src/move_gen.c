@@ -9,10 +9,29 @@ int is_castling(int src, int dest, Game* game){
     return 0;
 }
 
+/* Contains additional checks for player specified moves */
+int is_legal_player_move(Game* game, Move move){
+    for(int i=0; i<game->legal_moves.size; i++){
+        if(move == game->legal_moves.moves[i]){
+            return 1;
+        }
+    }
+
+    /* Remove when move generation is implemented */
+    if(!DEBUG) return 0;
+    if(get_move_capture(move) != White){
+        if(game->side_to_move && (game->board->pieces[White] & U64_MASK(get_move_dest(move)))){
+            return 0;
+        } else if(!(game->side_to_move) && (game->board->pieces[Black] & U64_MASK(get_move_dest(move)))){
+            return 0;
+        }
+    }
+    return is_legal_move(game, move);
+}
+
 int is_legal_move(Game* game, Move move){
-    int legal = 1;
-    legal = legal && move != -1;
-    return legal;
+    if(move < 0) return 0;
+    return 1;
 }
 
 

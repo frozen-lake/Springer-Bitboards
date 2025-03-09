@@ -69,7 +69,7 @@ int main(){
 
         if(DEBUG){ print_move(move); }
 
-        if(is_legal_move(game, move)){
+        if(is_legal_player_move(game, move)){
             make_move(game, move); 
         } else {
 

@@ -23,6 +23,8 @@ extern AttackData attack_data;
 
 #define LURD_INDEX(pos) ((pos/8) + (pos%8))
 #define RULD_INDEX(pos) (((pos/8) - (pos%8)) + 7)
+#define COL_INDEX(pos) (pos % 8)
+#define ROW_INDEX(pos) (pos / 8)
 
 #endif
 

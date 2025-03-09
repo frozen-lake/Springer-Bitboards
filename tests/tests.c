@@ -23,6 +23,7 @@ int test_load_fen(){
 	
 	char* fen = "4k3/8/8/1n2p3/4P1Pp/8/8/3BK3 b - g3 0 1";
 	int success = load_fen(game, fen);
+	success = !game->side_to_move;
 	
 	if(!success){
 		destroy_game(game);
@@ -47,20 +48,23 @@ int test_make_move(){
 	char* fen = "4k3/8/8/1n2p3/4P1Pp/2P5/8/3BK3 b - g3 0 1";
 	int success = load_fen(game, fen);
 
-	Move move = 33 | (18 << 6) | (Knight << 12) | (Pawn << 15);
+	Move move = 33 | (18 << 6) | (Knight << 12) | (Pawn << 15); // 
 	make_move(game, move);
 
 	/* Piece is off of source square */
 	success = success && ((game->board->pieces[Knight] & U64_MASK(33)) == 0);
 	success = success && ((game->board->pieces[Black] & U64_MASK(33)) == 0);
 
+	printf("is %d\n", success);
 	/* Piece is on destination square */
 	success = success && (game->board->pieces[Knight] & U64_MASK(18));
 	success = success && (game->board->pieces[Black] & U64_MASK(18));
+	printf("is %d\n", success);
 
 	/* Captured piece is gone */
 	success = success && ((game->board->pieces[Pawn] & U64_MASK(18)) == 0);
 	success = success && ((game->board->pieces[White] & U64_MASK(18)) == 0);
+	printf("is %d\n", success);
 
 	return success;
 }
