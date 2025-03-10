@@ -13,8 +13,9 @@ Game* create_game(){
 	Game* game = calloc(1, sizeof(Game));
 	game->board = create_board();
 	game->side_to_move = 1;
-	game->game_length = 0;
+	game->en_passant = 0;
 
+	game->game_length = 0;
 	move_list_init(&game->legal_moves);
 	game->move_history_capacity = MAX_MOVES;
 	game->move_history = (Move*) calloc(game->move_history_capacity, 4);
@@ -128,11 +129,13 @@ int load_fen(Game* game, char* str){
 		
 	}	
 	
-
+	if(fen_field[3] && fen_field[3][0] != '-'){
+		game->en_passant = parse_square(fen_field[3]);
+	}
 
 	//printf("fen: %s\nfields: %s, %s, %s, %s, %s, %s\n", str, fen_field[0], fen_field[1], fen_field[2], fen_field[3], fen_field[4], fen_field[5]);
 	//print_board(board);
-	// printf("field[0]: %s\n", fen_field[0]);
+	//printf("field[3]: %s\n", fen_field[3]);
 	// printf("ranks: %s, %s, %s, %s, %s, %s, %s, %s\n", ranks[0], ranks[1], ranks[2], ranks[3], ranks[4], ranks[5], ranks[6], ranks[7]);
 
 	destroy_board(game->board);
@@ -156,8 +159,17 @@ void make_move(Game* game, Move move){
 	/* Update piece bitboards */
 	board->pieces[piece_type] -= U64_MASK(src);
 	board->pieces[piece_type] += U64_MASK(dest);
-	if(capture != 0){ // if no capture
-		board->pieces[capture] -= U64_MASK(dest);
+
+	if(capture != 0){
+		if(!get_move_en_passant(move)){
+			board->pieces[capture] -= U64_MASK(dest);
+		} else {
+			if(color){
+				board->pieces[capture] -= U64_MASK(dest - 8);
+			} else {
+				board->pieces[capture] -= U64_MASK(dest + 8);
+			}
+		}
 	}
 
 	/* Update attack_from at src and dest */
@@ -208,6 +220,15 @@ void make_move(Game* game, Move move){
 		populate_lurd_attack(board, update_src, occupancy);
 	}
 
+	/* Track next en passant */
+	game->en_passant = -1;
+	if(piece_type == Pawn){
+		if(color && (dest == src+16)){
+			game->en_passant = src+8;
+		} else if(!color && (dest == src-16)){
+			game->en_passant = src-8;
+		}
+	}
 
 	/* Update move_history */
 	if(game->game_length >= game->move_history_capacity){

@@ -10,7 +10,7 @@ int get_move_dest(Move move){ return (move >> 6) & 0b111111; }
 int get_move_piece(Move move){ return (move >> 12) & 0b111; }
 int get_move_capture(Move move){ return (move >> 15) & 0b111; }
 int get_move_promotion(Move move){ return (move >> 18) & 0b111; }
-int get_move_special(Move move){ return (move >> 21) & 0b11; }
+int get_move_en_passant(Move move){ return (move >> 21) & 0b1; }
 
 /* Convert algebraic notation to numeric square index: "e4" --> 28 */
 int parse_square(char *square) {
@@ -92,8 +92,14 @@ int parse_algebraic_move(char* input, Game* game) {
         } else {
             src += 8 * (input[3] - 48);
         }
-        return encode_move(src, destination, board);
+
+        if(game->en_passant != destination){
+            return encode_move(src, destination, board);
+        } else {
+            return src | (destination << 6) | (Pawn << 12) | (Pawn << 15) | (1 << 21);
+        }
     }
+
 
     /* Find the source square */
     int src = find_source_square(board, piece, destination, file_hint, rank_hint);

@@ -108,10 +108,10 @@ int test_generate_pawn_moves(){
     move_list_init(&generated_moves);
     move_list_init(&expected_moves);
 
-    move_list_add(&generated_moves, 11 | (19 << 6)); // d3
-    move_list_add(&generated_moves, 11 | (27 << 6)); // d4
-    move_list_add(&generated_moves, 11 | (18 << 6) | (Knight << 12)); // dxc3
-    move_list_add(&generated_moves, 12 | (20 << 6)); // e3
+    move_list_add(&expected_moves, 11 | (19 << 6) | (Pawn << 12)); // d3
+    move_list_add(&expected_moves, 11 | (27 << 6) | (Pawn << 12)); // d4
+    move_list_add(&expected_moves, 11 | (18 << 6) | (Pawn << 12) | (Knight << 15)); // dxc3
+    move_list_add(&expected_moves, 12 | (20 << 6) | (Pawn << 12)); // e3
     
     generate_pawn_moves(&generated_moves, game, 1);
     success = success && compare_generated_moves(&expected_moves, &generated_moves);
@@ -131,7 +131,7 @@ int test_generate_pawn_moves_en_passant(){
     move_list_init(&generated_moves);
     move_list_init(&expected_moves);
 
-    move_list_add(&expected_moves, 36 | (45 << 6) | (Pawn << 12) | (Pawn << 15));
+    move_list_add(&expected_moves, 36 | (45 << 6) | (Pawn << 12) | (Pawn << 15) | (1 << 21));
     generate_pawn_moves(&generated_moves, game, White);
 
     success = success && compare_generated_moves(&expected_moves, &generated_moves);

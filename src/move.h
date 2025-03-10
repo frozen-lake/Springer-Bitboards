@@ -16,7 +16,7 @@ typedef uint32_t Move;
  * 3 bits - moved piece
  * 3 bits - captured piece
  * 3 bits - promotion: (0=No promotion, 1=Knight, 2=Bishop, 3=Rook, 4=Queen)
- * 2 bits - special move flags
+ * 1 bit - en passant
 */
 
 
@@ -42,7 +42,7 @@ int get_move_dest(Move move);
 int get_move_piece(Move move);
 int get_move_capture(Move move);
 int get_move_promotion(Move move);
-int get_move_special(Move move);
+int get_move_en_passant(Move move);
 
 int parse_square(char* square);
 int find_source_square(Board *board, char piece, int destination, char file_hint, int rank_hint);
