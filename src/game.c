@@ -5,6 +5,7 @@
 #include "game.h"
 #include "board.h"
 #include "move.h"
+#include "move_gen.h"
 #include "attack_data.h"
 
 
@@ -16,9 +17,11 @@ Game* create_game(){
 	game->en_passant = 0;
 
 	game->game_length = 0;
-	move_list_init(&game->legal_moves);
 	game->move_history_capacity = MAX_MOVES;
 	game->move_history = (Move*) calloc(game->move_history_capacity, 4);
+
+	move_list_init(&game->legal_moves);
+
 	return game;
 }
 
@@ -35,6 +38,8 @@ void destroy_game(Game* game){
 void initialize_game(Game* game){
 	initialize_board(game->board);
 	game->side_to_move = 1;
+	move_list_init(&game->legal_moves);
+	generate_legal_moves(game, game->side_to_move);
 }
 
 /* Load a position from a FEN String (Forsyth-Edwards Notation.) */
@@ -139,8 +144,10 @@ int load_fen(Game* game, char* str){
 	// printf("ranks: %s, %s, %s, %s, %s, %s, %s, %s\n", ranks[0], ranks[1], ranks[2], ranks[3], ranks[4], ranks[5], ranks[6], ranks[7]);
 
 	destroy_board(game->board);
-	populate_attack_from(board);
 	game->board = board;
+
+	populate_attack_from(board);
+	generate_legal_moves(game, game->side_to_move);
 
 	return 1;
 }
@@ -155,21 +162,36 @@ void make_move(Game* game, Move move){
 	int src = get_move_src(move);
 	int piece_type = get_move_piece(move);
 	int capture = get_move_capture(move);
+	int special = get_move_special(move);
 
 	/* Update piece bitboards */
 	board->pieces[piece_type] -= U64_MASK(src);
 	board->pieces[piece_type] += U64_MASK(dest);
 
 	if(capture != 0){
-		if(!get_move_en_passant(move)){
+		if(!special){
 			board->pieces[capture] -= U64_MASK(dest);
-		} else {
+		} else if(special == EnPassant){
 			if(color){
 				board->pieces[capture] -= U64_MASK(dest - 8);
 			} else {
 				board->pieces[capture] -= U64_MASK(dest + 8);
 			}
 		}
+	} else if(special == Kingside){
+		uint64_t rook_src = U64_MASK(src + 3);
+		uint64_t rook_dest = U64_MASK(src + 1);
+		board->pieces[color] -= rook_src;
+		board->pieces[color] += rook_dest;
+		board->pieces[Rook] -= rook_src;
+		board->pieces[Rook] += rook_dest;
+	} else if(special == Queenside){
+		uint64_t rook_src = U64_MASK(src - 4);
+		uint64_t rook_dest = U64_MASK(src - 1);
+		board->pieces[color] -= rook_src;
+		board->pieces[color] += rook_dest;
+		board->pieces[Rook] -= rook_src;
+		board->pieces[Rook] += rook_dest;
 	}
 
 	/* Update attack_from at src and dest */
@@ -240,6 +262,10 @@ void make_move(Game* game, Move move){
 
 
 	game->side_to_move = !(game->side_to_move);
+
+	move_list_init(&game->legal_moves);
+	generate_legal_moves(game, game->side_to_move);
+
 }
 void undo_move(Game* game, Move move){
 

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 #include "game.h"
 #include "move.h"
 
@@ -10,7 +11,22 @@ int get_move_dest(Move move){ return (move >> 6) & 0b111111; }
 int get_move_piece(Move move){ return (move >> 12) & 0b111; }
 int get_move_capture(Move move){ return (move >> 15) & 0b111; }
 int get_move_promotion(Move move){ return (move >> 18) & 0b111; }
-int get_move_en_passant(Move move){ return (move >> 21) & 0b1; }
+int get_move_special(Move move){ return (move >> 21) & 0b11; }
+
+int is_legal_player_move(Game* game, Move move){
+    for(int i=0; i<game->legal_moves.size; i++){
+        if(move == game->legal_moves.moves[i]){
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int is_legal_move(Game* game, Move move){
+    if(move == (uint32_t)-1) return 0;
+    return 1;
+}
 
 /* Convert algebraic notation to numeric square index: "e4" --> 28 */
 int parse_square(char *square) {
@@ -52,6 +68,16 @@ int parse_algebraic_move(char* input, Game* game) {
     char file_hint = '\0';
     int rank_hint = -1;
     char destination_square[3] = {0};
+
+    if(input[0] == 'O'){
+        uint64_t king = board->pieces[King] & game->board->pieces[game->side_to_move];
+        int king_pos = get_lsb_index(king);
+        if(strncmp(input, "O-O-O", 5) == 0){
+            return king_pos | ((king_pos-2) << 6) | (King << 12) | (Queenside << 21);
+        } else if(strncmp(input, "O-O", 3) == 0){
+            return king_pos | ((king_pos+2) << 6) | (King << 12) | (Kingside << 21);
+        }
+    }
 
     /* Determine the piece and destination square */
     int i = 0;

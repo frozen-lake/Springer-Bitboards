@@ -5,6 +5,14 @@
 #ifndef MOVE_H
 #define MOVE_H
 
+enum Special {
+    None,
+    EnPassant,
+    Kingside,
+    Queenside
+};
+
+
 #define MAX_MOVES 218
 
 typedef uint32_t Move;
@@ -42,7 +50,10 @@ int get_move_dest(Move move);
 int get_move_piece(Move move);
 int get_move_capture(Move move);
 int get_move_promotion(Move move);
-int get_move_en_passant(Move move);
+int get_move_special(Move move);
+
+int is_legal_player_move(Game* game, Move move);
+int is_legal_move(Game* game, Move move);
 
 int parse_square(char* square);
 int find_source_square(Board *board, char piece, int destination, char file_hint, int rank_hint);

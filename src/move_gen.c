@@ -1,39 +1,6 @@
 #include "move_gen.h"
 #include "game.h"
 
-int is_en_passant(int src, int dest, Game* game){
-    return 0;
-}
-
-int is_castling(int src, int dest, Game* game){
-    return 0;
-}
-
-/* Contains additional checks for player specified moves */
-int is_legal_player_move(Game* game, Move move){
-    for(int i=0; i<game->legal_moves.size; i++){
-        if(move == game->legal_moves.moves[i]){
-            return 1;
-        }
-    }
-
-    /* Remove when move generation is implemented */
-    if(!DEBUG) return 0;
-    if(get_move_capture(move) != 0){
-        if(game->side_to_move && (game->board->pieces[White] & U64_MASK(get_move_dest(move)))){
-            return 0;
-        } else if(!(game->side_to_move) && (game->board->pieces[Black] & U64_MASK(get_move_dest(move)))){
-            return 0;
-        }
-    }
-    return is_legal_move(game, move);
-}
-
-int is_legal_move(Game* game, Move move){
-    if(move == (uint32_t)-1) return 0;
-    return 1;
-}
-
 
 void generate_knight_moves(MoveList* move_list, Game* game, int color){
     Board* board = game->board;
@@ -63,37 +30,37 @@ void generate_pawn_moves(MoveList* move_list, Game* game, int color){
 
     uint64_t occupancy = board->pieces[White] | board->pieces[Black];
 
+
+
+
     while(pawns) {
         int src = get_lsb_index(pawns);
         pawns &= pawns - 1;
 
+        int left_capture = color?src+7:src-9;
+        int right_capture = color?src+9:src-7;
+        int forward = color?src+8:src-8;
+        int double_forward = color?src+16:src-16;
+
         /* Captures */
-        if((src % 8 > 0) && (U64_MASK(src+7) & board->pieces[!color])){
-            Move move = encode_move(src, src+7, game->board);
-            if(is_legal_move(game, move)){
-                move_list_add(move_list, move);
-            }
+        if((src % 8 > 0) && (U64_MASK(left_capture) & board->pieces[!color])){
+            Move move = encode_move(src, left_capture, game->board);
+            move_list_add(move_list, move);
         }
-        if((src % 8 < 7) && (U64_MASK(src+9) & board->pieces[!color])){
-            Move move = encode_move(src, src+9, game->board);
-            if(is_legal_move(game, move)){
-                move_list_add(move_list, move);
-            }
+        if((src % 8 < 7) && (U64_MASK(right_capture) & board->pieces[!color])){
+            Move move = encode_move(src, right_capture, game->board);
+            move_list_add(move_list, move);
         }
 
         /* Forward moves */
-        if(!(U64_MASK(src+8) & occupancy)){
-            Move move = encode_move(src, src+8, game->board);
-            if(is_legal_move(game, move)){
-                move_list_add(move_list, move);
-            }
+        if(!(U64_MASK(forward) & occupancy)){
+            Move move = encode_move(src, forward, game->board);
+            move_list_add(move_list, move);
 
             /* Double forward */
-            if(!(U64_MASK(src+16) & occupancy)){
-                Move move = encode_move(src, src+16, game->board);
-                if(is_legal_move(game, move)){
-                    move_list_add(move_list, move);
-                }
+            if(!(U64_MASK(double_forward) & occupancy)){
+                Move move = encode_move(src, double_forward, game->board);
+                move_list_add(move_list, move);
             }
         }
 
@@ -102,27 +69,34 @@ void generate_pawn_moves(MoveList* move_list, Game* game, int color){
             if((color && ((game->en_passant == src+7) || (game->en_passant == src+9)))
                 || (!color && ((game->en_passant == src-7) || (game->en_passant == src-9)))){
                     Move move = src | (game->en_passant << 6) | (Pawn << 12) | (Pawn << 15) | (1 << 21);
-                    if(is_legal_move(game, move)){
-                        move_list_add(move_list, move);
-                    }
+                    move_list_add(move_list, move);
              }
         }
-
     }
-
-
-    /* En passant */
 }
 void generate_king_moves(MoveList* move_list, Game* game, int color){
     Board* board = game->board;
-    uint64_t kings = board->pieces[King] & board->pieces[color];
-    generate_moves(kings, move_list, game, color);
+    uint64_t king = board->pieces[King] & board->pieces[color];
+    generate_moves(king, move_list, game, color);
 
-    // TO-DO: Add castling moves
+    uint64_t occupied = board->pieces[White] | board->pieces[Black];
+    int king_pos = get_lsb_index(king);
+
+    if(!(occupied & ((king << 1) | (king << 2)))
+            && (board->pieces[color] & board->pieces[Rook] & (king<<3))){
+        Move move = king_pos | ((king_pos+2) << 6) | (King << 12) | (Kingside << 21);
+        move_list_add(move_list, move);
+    }
+
+    if(!(occupied & ((king >> 1) | (king >> 2) | (king >> 3)))
+            && (board->pieces[color] & board->pieces[Rook] & (king >> 4))){
+        Move move = king_pos | ((king_pos-2) << 6) | (King << 12) | (Queenside << 21);
+        move_list_add(move_list, move);
+    }
 }
 
 void generate_all_moves(MoveList* move_list, Game* game, int color){
-    move_list->size = 0;
+    move_list_init(move_list);
 
     /* Generate from attack_from bitboard */
     generate_knight_moves(move_list, game, color);
@@ -153,10 +127,16 @@ void generate_moves(uint64_t movers, MoveList* move_list, Game* game, int color)
             }
 
             Move move = encode_move(src, dest, game->board);
-            if(is_legal_move(game, move)){
-                move_list_add(move_list, move);
-            }
-
+            move_list_add(move_list, move);
         }
     }
+}
+
+void filter_legal_moves(MoveList* move_list, Game* game){
+
+}
+
+void generate_legal_moves(Game* game, int color){
+    generate_all_moves(&game->legal_moves, game, color);
+    filter_legal_moves(&game->legal_moves, game);
 }
