@@ -24,8 +24,8 @@ int test_encode_move(){
 	Game* game = create_game();
 
 	load_fen(game, "4k3/8/8/2Q5/4P1Pp/8/8/3BK3 b - g3 0 1");
-    Move move = encode_move(34, 2, game->board);
-    int success = move == (34 | (2 << 6) | (Queen << 12));
+    Move move = encode_move(C5, C1, game->board);
+    int success = move == (C5 | (C1 << 6) | (Queen << 12));
 
     destroy_game(game);
     return success;
@@ -35,8 +35,8 @@ int test_encode_move_capture(){
 	Game* game = create_game();
 
 	load_fen(game, "4k3/8/8/2R5/4P1Pp/8/8/2nBK3 b - g3 0 1");
-    Move move = encode_move(34, 2, game->board);
-    int success = move == (34 | (2 << 6) | (Rook << 12) | (Knight << 15));
+    Move move = encode_move(C5, C1, game->board);
+    int success = move == (C5 | (C1 << 6) | (Rook << 12) | (Knight << 15));
 
     destroy_game(game);
     return success;
@@ -46,11 +46,11 @@ int test_encode_move_init(){
     Game* game = create_game();
     initialize_game(game);
 
-    Move Nf3 = encode_move(6, 21, game->board);
-    Move e4 = encode_move(12, 28, game->board);
+    Move Nf3 = encode_move(G1, F3, game->board);
+    Move e4 = encode_move(E2, E4, game->board);
 
-    int success = Nf3 == (6 | (21 << 6) | (Knight << 12));
-    success = success && e4 == (12 | (28 << 6) | (Pawn << 12));
+    int success = Nf3 == (G1 | (F3 << 6) | (Knight << 12));
+    success = success && e4 == (E2 | (E4 << 6) | (Pawn << 12));
 
     destroy_game(game);
     return success;
@@ -67,14 +67,14 @@ int test_generate_knight_moves(){
     move_list_init(&generated_moves);
     move_list_init(&expected_moves);
     
-    move_list_add(&expected_moves, 20 | (3 << 6) | (Knight << 12) | (Bishop << 15)), // Nxd1
-    move_list_add(&expected_moves, 20 | (5 << 6) | (Knight << 12)), // Nf1
-    move_list_add(&expected_moves, 20 | (10 << 6) | (Knight << 12)), // Nc2
-    move_list_add(&expected_moves, 20 | (14 << 6) | (Knight << 12)), // Ng2
-    move_list_add(&expected_moves, 20 | (26 << 6) | (Knight << 12)), // Nc4
-    move_list_add(&expected_moves, 20 | (30 << 6) | (Knight << 12) | (Pawn << 15)), // Nxg4
-    move_list_add(&expected_moves, 20 | (35 << 6) | (Knight << 12)), // Nd5
-    move_list_add(&expected_moves, 20 | (37 << 6) | (Knight << 12)), // Nf5
+    move_list_add(&expected_moves, E3 | (D1 << 6) | (Knight << 12) | (Bishop << 15)), // Nxd1
+    move_list_add(&expected_moves, E3 | (F1 << 6) | (Knight << 12)), // Nf1
+    move_list_add(&expected_moves, E3 | (C2 << 6) | (Knight << 12)), // Nc2
+    move_list_add(&expected_moves, E3 | (G2 << 6) | (Knight << 12)), // Ng2
+    move_list_add(&expected_moves, E3 | (C4 << 6) | (Knight << 12)), // Nc4
+    move_list_add(&expected_moves, E3 | (G4 << 6) | (Knight << 12) | (Pawn << 15)), // Nxg4
+    move_list_add(&expected_moves, E3 | (D5 << 6) | (Knight << 12)), // Nd5
+    move_list_add(&expected_moves, E3 | (F5 << 6) | (Knight << 12)), // Nf5
 
     generate_knight_moves(&generated_moves, game, Black);
     success = success && compare_generated_moves(&expected_moves, &generated_moves);
@@ -82,13 +82,13 @@ int test_generate_knight_moves(){
     move_list_init(&generated_moves);
     move_list_init(&expected_moves);
 
-    move_list_add(&expected_moves, 21 | (6 << 6) | (Knight << 12)); // Ng1
-    move_list_add(&expected_moves, 21 | (11 << 6) | (Knight << 12)); // Nd2
-    move_list_add(&expected_moves, 21 | (15 << 6) | (Knight << 12)); // Nh2
-    move_list_add(&expected_moves, 21 | (27 << 6) | (Knight << 12)); // Nd4
-    move_list_add(&expected_moves, 21 | (31 << 6) | (Knight << 12) | (Pawn << 15)); // Nxh4
-    move_list_add(&expected_moves, 21 | (36 << 6) | (Knight << 12) | (Pawn << 15)); // Nxe5
-    move_list_add(&expected_moves, 21 | (38 << 6) | (Knight << 12)); // Ng5
+    move_list_add(&expected_moves, F3 | (G1 << 6) | (Knight << 12)); // Ng1
+    move_list_add(&expected_moves, F3 | (D2 << 6) | (Knight << 12)); // Nd2
+    move_list_add(&expected_moves, F3 | (H2 << 6) | (Knight << 12)); // Nh2
+    move_list_add(&expected_moves, F3 | (D4 << 6) | (Knight << 12)); // Nd4
+    move_list_add(&expected_moves, F3 | (H4 << 6) | (Knight << 12) | (Pawn << 15)); // Nxh4
+    move_list_add(&expected_moves, F3 | (E5 << 6) | (Knight << 12) | (Pawn << 15)); // Nxe5
+    move_list_add(&expected_moves, F3 | (G5 << 6) | (Knight << 12)); // Ng5
 
     generate_knight_moves(&generated_moves, game, White);
     success = success && compare_generated_moves(&expected_moves, &generated_moves);
@@ -108,10 +108,10 @@ int test_generate_pawn_moves(){
     move_list_init(&generated_moves);
     move_list_init(&expected_moves);
 
-    move_list_add(&expected_moves, 11 | (19 << 6) | (Pawn << 12)); // d3
-    move_list_add(&expected_moves, 11 | (27 << 6) | (Pawn << 12)); // d4
-    move_list_add(&expected_moves, 11 | (18 << 6) | (Pawn << 12) | (Knight << 15)); // dxc3
-    move_list_add(&expected_moves, 12 | (20 << 6) | (Pawn << 12)); // e3
+    move_list_add(&expected_moves, D2 | (D3 << 6) | (Pawn << 12)); // d3
+    move_list_add(&expected_moves, D2 | (D4 << 6) | (Pawn << 12)); // d4
+    move_list_add(&expected_moves, D2 | (C3 << 6) | (Pawn << 12) | (Knight << 15)); // dxc3
+    move_list_add(&expected_moves, E2 | (E3 << 6) | (Pawn << 12)); // e3
     
     generate_pawn_moves(&generated_moves, game, 1);
     success = success && compare_generated_moves(&expected_moves, &generated_moves);
@@ -131,7 +131,7 @@ int test_generate_pawn_moves_en_passant(){
     move_list_init(&generated_moves);
     move_list_init(&expected_moves);
 
-    move_list_add(&expected_moves, 36 | (45 << 6) | (Pawn << 12) | (Pawn << 15) | (1 << 21));
+    move_list_add(&expected_moves, E5 | (F6 << 6) | (Pawn << 12) | (Pawn << 15) | (1 << 21));
     generate_pawn_moves(&generated_moves, game, White);
 
     success = success && compare_generated_moves(&expected_moves, &generated_moves);
@@ -151,11 +151,11 @@ int test_generate_king_moves(){
     move_list_init(&generated_moves);
     move_list_init(&expected_moves);
 
-    move_list_add(&expected_moves, 4 | (3 << 6) | (King << 12));
-    move_list_add(&expected_moves, 4 | (5 << 6) | (King << 12));
-    move_list_add(&expected_moves, 4 | (11 << 6) | (King << 12));
-    move_list_add(&expected_moves, 4 | (2 << 6) | (King << 12) | (Queenside << 21));
-    move_list_add(&expected_moves, 4 | (6 << 6) | (King << 12) | (Kingside << 21));
+    move_list_add(&expected_moves, E1 | (D1 << 6) | (King << 12));
+    move_list_add(&expected_moves, E1 | (F1 << 6) | (King << 12));
+    move_list_add(&expected_moves, E1 | (D2 << 6) | (King << 12));
+    move_list_add(&expected_moves, E1 | (C1 << 6) | (King << 12) | (Queenside << 21));
+    move_list_add(&expected_moves, E1 | (G1 << 6) | (King << 12) | (Kingside << 21));
 
     generate_king_moves(&generated_moves, game, White);
     success = success && compare_generated_moves(&expected_moves, &generated_moves);

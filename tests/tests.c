@@ -12,7 +12,7 @@ int test_game_init(){
 	Game* game = create_game();
 	initialize_game(game);
 
-	int success = game->board->attack_from[6] & U64_MASK(21);
+	int success = game->board->attack_from[G1] & U64_MASK(21);
 
 	destroy_game(game);
 	return success;
@@ -31,8 +31,8 @@ int test_load_fen(){
 		return 0;
 	}
 
-	success = success && (game->board->pieces[Pawn]) == ((1ULL << 28) | (1ULL << 36) | (1ULL << 30) | (1ULL << 31));
-	success = success && (game->board->attack_from[33] == (uint64_t) 0b101000010000000000000001000000001010000000000000000);
+	success = success && (game->board->pieces[Pawn]) == (U64_MASK(E4) | U64_MASK(E5) | U64_MASK(G4) | U64_MASK(H4));
+	success = success && (game->board->attack_from[B5] == (uint64_t) 0b101000010000000000000001000000001010000000000000000);
 	success = success && (game->board->pieces[White] == 0b1010000000000000000000000011000);
 	success = success && (game->board->pieces[Black] == 0b1000000000000000000000001001010000000000000000000000000000000);
 	
@@ -50,20 +50,20 @@ int test_make_move(){
 	char* fen = "4k3/8/8/1n2p3/4P1Pp/2P5/8/3BK3 b - g3 0 1";
 	int success = load_fen(game, fen);
 
-	Move move = 33 | (18 << 6) | (Knight << 12) | (Pawn << 15); // 
+	Move move = B5 | (C3 << 6) | (Knight << 12) | (Pawn << 15); // 
 	make_move(game, move);
 
 	/* Piece is off of source square */
-	success = success && ((game->board->pieces[Knight] & U64_MASK(33)) == 0);
-	success = success && ((game->board->pieces[Black] & U64_MASK(33)) == 0);
+	success = success && ((game->board->pieces[Knight] & U64_MASK(B5)) == 0);
+	success = success && ((game->board->pieces[Black] & U64_MASK(B5)) == 0);
 
 	/* Piece is on destination square */
-	success = success && (game->board->pieces[Knight] & U64_MASK(18));
-	success = success && (game->board->pieces[Black] & U64_MASK(18));
+	success = success && (game->board->pieces[Knight] & U64_MASK(C3));
+	success = success && (game->board->pieces[Black] & U64_MASK(C3));
 
 	/* Captured piece is gone */
-	success = success && ((game->board->pieces[Pawn] & U64_MASK(18)) == 0);
-	success = success && ((game->board->pieces[White] & U64_MASK(18)) == 0);
+	success = success && ((game->board->pieces[Pawn] & U64_MASK(C3)) == 0);
+	success = success && ((game->board->pieces[White] & U64_MASK(C3)) == 0);
 
 	destroy_game(game);
 	return success;
