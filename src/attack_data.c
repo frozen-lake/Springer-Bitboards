@@ -48,22 +48,22 @@ uint64_t occupancy_table_lookup(int index, int occupancy_key){
     return attack_data.occupancy_table[index][occupancy_key];
 }
 
-static uint64_t generate_row_occupancy_key(int row, uint64_t occupancy){
+uint64_t generate_row_occupancy_key(int row, uint64_t occupancy){
     uint64_t result = occupancy & attack_data.row[row]; // Extract occupancy
     return (result >> ((8*row)+1)) & 0b111111; // Isolate the relevant 6 bits
 }
 
-static uint64_t generate_col_occupancy_key(int col, uint64_t occupancy){
+uint64_t generate_col_occupancy_key(int col, uint64_t occupancy){
     uint64_t result = (occupancy & attack_data.col[col]) >> col; // Extract occupancy, move to A file
     return ((result * attack_data.lurd[LURD_INDEX(7)]) >> 57) & 0b111111; // Multiply to convert col to row, shift to first rank and isolate the 6 relevant bits
 }
 
-static uint64_t generate_ruld_occupancy_key(int origin, uint64_t occupancy){
+uint64_t generate_ruld_occupancy_key(int origin, uint64_t occupancy){
 	uint64_t occupancy_key = attack_data.ruld[RULD_INDEX(origin)] & occupancy;
 	occupancy_key = (occupancy_key * attack_data.col[1]) >> 58;
     return occupancy_key;
 }
-static uint64_t generate_lurd_occupancy_key(int origin, uint64_t occupancy){
+uint64_t generate_lurd_occupancy_key(int origin, uint64_t occupancy){
 	uint64_t occupancy_key = attack_data.lurd[LURD_INDEX(origin)] & occupancy;
 	occupancy_key = (occupancy_key * attack_data.col[1]) >> 58;
     return occupancy_key;
@@ -139,8 +139,12 @@ void populate_king_attack(Board* board, int origin){
     board->attack_from[origin] = attack_data.king[origin];
 }
 
-void populate_attack_from(Board* board){
-    
+void populate_attack_maps(Board* board){
+    for(int i=0;i<64;i++){
+        board->attack_from[i] = 0;
+        board->attack_to[i] = 0;
+    }
+
     uint64_t pieces = board->pieces[Pawn] & board->pieces[White];
     while(pieces){
         populate_pawn_attack(board, get_lsb_index(pieces), 1);
@@ -180,6 +184,16 @@ void populate_attack_from(Board* board){
     while(pieces){
         populate_king_attack(board, get_lsb_index(pieces));
         pieces &= pieces - 1;
+    }
+
+    /* Iterate over each attack_from attacker, updating the corresponding attack_to square  */
+    for(int i=0;i<64;i++){
+        uint64_t attacked_squares = board->attack_from[i];
+        while(attacked_squares > 0){
+            int attacked_square = get_lsb_index(attacked_squares);
+            attacked_squares &= attacked_squares -1;
+            board->attack_to[attacked_square] |= U64_MASK(i);
+        }
     }
 }
 

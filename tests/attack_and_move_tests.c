@@ -117,20 +117,10 @@ int test_populate_queen_attack(){
 	return success;
 }
 
-int test_populate_knight_attack(){
-	Game* game = create_game();
-
-	destroy_game(game);
-
-	return 0;
-}
 int test_populate_pawn_attack(){
 	int success =  attack_data.pawn_black[E4] == (U64_MASK(D3) | U64_MASK(F3));
 	success = success && attack_data.pawn_white[D4] == (U64_MASK(C5) | U64_MASK(E5));
 	return success;
-}
-int test_populate_king_attack(){
-	return 0;
 }
 
 int test_generate_occupancy_table(){
@@ -141,6 +131,38 @@ int test_generate_occupancy_table(){
 	success = success && attack_data.occupancy_table[2][0b111111] == 0b00001010;
 
 	return success;
+}
+
+int test_square_attacked(){
+	Game* game = create_game();
+	load_fen(game, "4k3/4p3/5n2/2Q5/4P1Pp/4N3/8/3BK3 b - g3 0 1");
+
+	int success = square_attacked(game->board, E7, White);
+	success = success && square_attacked(game->board, E7, Black);
+
+	success = success && square_attacked(game->board, E4, Black);
+	success = success && !square_attacked(game->board, E4, White);
+
+	success = success && !square_attacked(game->board, C5, Black);
+	success = success && !square_attacked(game->board, C5, White);
+
+	success = success && !square_attacked(game->board, E1, Black);
+	success = success && !square_attacked(game->board, E1, White);
+	
+	success = success && square_attacked(game->board, G4, Black);
+	success = success && square_attacked(game->board, G4, White);
+
+	destroy_game(game);
+	return success;
+}
+
+int test_is_legal_move(){
+	Game* game = create_game();
+	load_fen(game, "4k3/4p3/5n2/8/3QP1Pp/4N3/8/3BK3 b - g3 0 1");
+	int illegal = is_legal_move(game, (E8 | (D7 << 6) | (King << 12)));
+	int legal = is_legal_move(game, (E8 | (F7 << 6) | (King << 12)));
+
+	return legal && !illegal;
 }
 
 void move_tests(){
@@ -165,7 +187,7 @@ void move_tests(){
 
 void attack_tests(){
 	
-	int num_tests = 5;
+	int num_tests = 7;
 
 	int (*test_cases[num_tests])();
 	char* test_case_names[num_tests];
@@ -175,12 +197,16 @@ void attack_tests(){
 	test_cases[2] = test_populate_queen_attack;
 	test_cases[3] = test_populate_pawn_attack;
 	test_cases[4] = test_generate_occupancy_table;
+	test_cases[5] = test_square_attacked;
+	test_cases[6] = test_is_legal_move;
 
 	test_case_names[0] = "test_populate_rook_attack";
 	test_case_names[1] = "test_populate_bishop_attack";
 	test_case_names[2] = "test_populate_queen_attack";
 	test_case_names[3] = "test_populate_pawn_attack";
 	test_case_names[4] = "test_generate_occupancy_table";
+	test_case_names[5] = "test_square_attacked";
+	test_case_names[6] = "test_is_legal_move";
 
     run_tests(test_cases, test_case_names, num_tests);
 }

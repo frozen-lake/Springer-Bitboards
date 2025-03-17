@@ -31,7 +31,7 @@ int test_load_fen(){
 		return 0;
 	}
 
-	success = success && (game->board->pieces[Pawn]) == (U64_MASK(E4) | U64_MASK(E5) | U64_MASK(G4) | U64_MASK(H4));
+	success = success && (game->board->pieces[Pawn] == (U64_MASK(E4) | U64_MASK(E5) | U64_MASK(G4) | U64_MASK(H4)));
 	success = success && (game->board->attack_from[B5] == (uint64_t) 0b101000010000000000000001000000001010000000000000000);
 	success = success && (game->board->pieces[White] == 0b1010000000000000000000000011000);
 	success = success && (game->board->pieces[Black] == 0b1000000000000000000000001001010000000000000000000000000000000);
@@ -39,6 +39,8 @@ int test_load_fen(){
 	/* Bad FEN should return -1 */
 	success = success && !load_fen(game, "4k3/8/8/1n3p3/4P1Pp/8/8/3BK3 b - g3 0 1");
 
+	success = load_fen(game, "3rk2r/1p6/4p3/8/2N2p2/5P2/P3P1PP/R3K2R w KQk - 0 2");
+	success = success && (game->castling_rights == 0b1101);
 
 	destroy_game(game);
 	return success;

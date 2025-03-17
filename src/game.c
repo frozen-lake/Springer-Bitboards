@@ -16,6 +16,7 @@ Game* create_game(){
 	game->side_to_move = 1;
 	game->en_passant = 0;
 
+	game->castling_rights = 0b1111;
 	game->game_length = 0;
 	game->move_history_capacity = MAX_MOVES;
 	game->move_history = (Move*) calloc(game->move_history_capacity, 4);
@@ -134,19 +135,43 @@ int load_fen(Game* game, char* str){
 		
 	}	
 	
+	game->castling_rights = 0;
+	if(fen_field[2] && fen_field[2][0] != '-'){
+		int k = 0;
+		while(fen_field[2][k] != '\0'){
+			switch(fen_field[2][k]){
+				case 'Q':
+					game->castling_rights |= (1 << 3);
+					break;
+				case 'K':
+					game->castling_rights |= (1 << 2);
+					break;
+				case 'q':
+					game->castling_rights |= (1 << 1);
+					break;
+				case 'k':
+					game->castling_rights |= (1 << 0);
+					break;
+			}
+			k++;
+		}
+	}
+
 	if(fen_field[3] && fen_field[3][0] != '-'){
 		game->en_passant = parse_square(fen_field[3]);
 	}
 
+
+
 	//printf("fen: %s\nfields: %s, %s, %s, %s, %s, %s\n", str, fen_field[0], fen_field[1], fen_field[2], fen_field[3], fen_field[4], fen_field[5]);
 	//print_board(board);
-	//printf("field[3]: %s\n", fen_field[3]);
+	//printf("field[5]: %s\n", fen_field[5]);
 	// printf("ranks: %s, %s, %s, %s, %s, %s, %s, %s\n", ranks[0], ranks[1], ranks[2], ranks[3], ranks[4], ranks[5], ranks[6], ranks[7]);
 
 	destroy_board(game->board);
+	populate_attack_maps(board);
 	game->board = board;
 
-	populate_attack_from(board);
 	generate_legal_moves(game, game->side_to_move);
 
 	return 1;
@@ -171,6 +196,23 @@ void make_move(Game* game, Move move){
 	if(capture != 0){
 		if(!special){
 			board->pieces[capture] -= U64_MASK(dest);
+
+			if(capture == Rook){ // Castling rights
+				switch(dest){
+					case A1:
+						game->castling_rights &= 0b0111;
+						break;
+					case H1:
+						game->castling_rights &= 0b1011; 
+						break;
+					case A8:
+						game->castling_rights &= 0b1101;
+						break;
+					case H8:
+						game->castling_rights &= 0b1110;
+						break;
+				}
+			}
 		} else if(special == EnPassant){
 			if(color){
 				board->pieces[capture] -= U64_MASK(dest - 8);
@@ -178,20 +220,20 @@ void make_move(Game* game, Move move){
 				board->pieces[capture] -= U64_MASK(dest + 8);
 			}
 		}
-	} else if(special == Kingside){
-		uint64_t rook_src = U64_MASK(src + 3);
-		uint64_t rook_dest = U64_MASK(src + 1);
+	} else if(special > EnPassant){
+		uint64_t rook_src, rook_dest;
+		if(special == Kingside){ // Kingside
+			rook_src = U64_MASK(src + 3);
+			rook_dest = U64_MASK(src + 1);
+		} else { // Queenside
+			rook_src = U64_MASK(src - 4);
+			rook_dest = U64_MASK(src - 1);
+		}
 		board->pieces[color] -= rook_src;
 		board->pieces[color] += rook_dest;
 		board->pieces[Rook] -= rook_src;
 		board->pieces[Rook] += rook_dest;
-	} else if(special == Queenside){
-		uint64_t rook_src = U64_MASK(src - 4);
-		uint64_t rook_dest = U64_MASK(src - 1);
-		board->pieces[color] -= rook_src;
-		board->pieces[color] += rook_dest;
-		board->pieces[Rook] -= rook_src;
-		board->pieces[Rook] += rook_dest;
+		game->castling_rights -= (0b11 << (color * 2)); 
 	}
 
 	/* Update attack_from at src and dest */
@@ -260,14 +302,21 @@ void make_move(Game* game, Move move){
 	game->move_history[game->game_length] = move;
 	game->game_length += 1;
 
+	/* Castling rights */
+	if(piece_type == King){
+		if(src == E1) game->castling_rights &= 0b0011;
+		if(src == E8) game->castling_rights &= 0b1100;
+	} else if(piece_type == Rook){
+		if(src == A1) game->castling_rights &= 0b0111;
+		if(src == H1) game->castling_rights &= 0b1011;
+		if(src == A8) game->castling_rights &= 0b1101;
+		if(src == H8) game->castling_rights &= 0b1110;
+	}
 
 	game->side_to_move = !(game->side_to_move);
 
 	move_list_init(&game->legal_moves);
 	generate_legal_moves(game, game->side_to_move);
-
-}
-void undo_move(Game* game, Move move){
 
 }
 

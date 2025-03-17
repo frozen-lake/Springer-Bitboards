@@ -5,6 +5,7 @@
 #include <string.h>
 #include "game.h"
 #include "move.h"
+#include "board.h"
 
 int get_move_src(Move move){ return move & 0b111111; }
 int get_move_dest(Move move){ return (move >> 6) & 0b111111; }
@@ -23,9 +24,52 @@ int is_legal_player_move(Game* game, Move move){
     return 0;
 }
 
+
 int is_legal_move(Game* game, Move move){
     if(move == (uint32_t)-1) return 0;
-    return 1;
+
+    int color = game->side_to_move;
+    int src = get_move_src(move);
+    int dest = get_move_dest(move);
+    int piece = get_move_piece(move);
+    int capture = get_move_capture(move);
+    int special = get_move_special(move);
+    Board* board = game->board;
+
+    /* Make move:
+     * Update piece bitboards
+     */
+    board->pieces[color] -= U64_MASK(src);
+    board->pieces[piece] -= U64_MASK(src);
+    if(capture){
+        board->pieces[!color] -= U64_MASK(dest);
+        board->pieces[capture] -= U64_MASK(dest);
+    } 
+    board->pieces[color] += U64_MASK(dest);
+    board->pieces[piece] += U64_MASK(dest);
+
+    int king_location = get_lsb_index(board->pieces[King] & board->pieces[color]);
+
+    int is_legal = !square_attacked(board, king_location, !color);
+    if(((special == Kingside) && square_attacked(board, king_location-1, !color))
+        || ((special == Queenside) && square_attacked(board, king_location+1, !color))){
+            is_legal = 0;
+    }
+
+    /* Undo move:
+     * Undo piece bitboard updates
+     */
+    board->pieces[piece] -= U64_MASK(dest);
+    board->pieces[color] -= U64_MASK(dest);
+    if(capture){
+        board->pieces[capture] += U64_MASK(dest);
+        board->pieces[!color] += U64_MASK(dest);
+    }
+    board->pieces[piece] += U64_MASK(src);
+    board->pieces[color] += U64_MASK(src);
+
+    
+    return is_legal;
 }
 
 /* Convert algebraic notation to numeric square index: "e4" --> 28 */
@@ -160,6 +204,14 @@ void move_list_add(MoveList* move_list, Move move){
         move_list->size += 1;
     }
 }
+
+void move_list_copy(MoveList* src, MoveList* dest){
+    move_list_init(dest);
+    for(int i=0;i<src->size;i++){
+        move_list_add(dest, src->moves[i]);
+    }
+}
+
 
 void print_moves(MoveList* move_list){
     printf("MoveList (%d moves):\n", move_list->size);

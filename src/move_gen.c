@@ -133,7 +133,19 @@ void generate_moves(uint64_t movers, MoveList* move_list, Game* game, int color)
 }
 
 void filter_legal_moves(MoveList* move_list, Game* game){
-
+    int num_legal_moves = 0;
+    for(int i=0;i<move_list->size;i++){
+        if(is_legal_move(game, move_list->moves[i])){
+            if(num_legal_moves < i){
+                Move tmp = move_list->moves[i];
+                move_list->moves[i] = move_list->moves[num_legal_moves];
+                move_list->moves[num_legal_moves] = tmp;
+            }
+            
+            num_legal_moves += 1;
+        }
+    }
+    move_list->size = num_legal_moves;
 }
 
 void generate_legal_moves(Game* game, int color){

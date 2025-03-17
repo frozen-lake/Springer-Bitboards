@@ -30,6 +30,7 @@ enum Square {
 typedef struct {
 
 	uint64_t attack_from[64]; 
+	uint64_t attack_to[64]; // WIP - placeholder, initialized but not maintained via incremental update
 	uint64_t pieces[8];
 
 
@@ -42,6 +43,8 @@ typedef struct {
 char position_to_piece_char(Board* board, int pos);
 int position_to_piece_number(Board* board, int pos);
 
+int square_attacked(Board* board, int square, int attacker_color);
+
 Board* create_board();
 void destroy_board(Board* board);
 
@@ -49,7 +52,7 @@ void initialize_board(Board* board);
 void empty_board(Board* board);
 void print_board(Board* board);
 
-void print_bitboard(uint64_t);
+void print_bitboard(uint64_t bb);
 
 char* piece_to_string(int piece);
 

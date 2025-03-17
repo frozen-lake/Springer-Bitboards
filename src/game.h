@@ -16,7 +16,12 @@ struct Game {
 	int side_to_move;
 	int game_length;
 	int move_history_capacity;
+
+	// Legal en passant square for current turn, -1 if none
 	int en_passant;
+
+	// Bit 0 = Black/Kingside, bit 1 = Black/Queenside, bit 2 = White/Kingside, bit 3 = White/Queenside
+	uint8_t castling_rights;
 };
 
 
@@ -29,7 +34,6 @@ void initialize_game(Game* game);
 int load_fen(Game* game, char* str);
 
 void make_move(Game* game, Move move);
-void undo_move(Game* game, Move move);
 
 
 /* Utilities */

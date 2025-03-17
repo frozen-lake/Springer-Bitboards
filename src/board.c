@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include "board.h"
 #include "attack_data.h"
+#include "game.h"
 
 
 /* Create and return an empty Board. */
@@ -27,7 +28,7 @@ void initialize_board(Board* board){
 	board->pieces[Queen] = 8ULL + (8ULL << 56);
 	board->pieces[King] = 16ULL + (16ULL << 56);
 
-	populate_attack_from(board);
+	populate_attack_maps(board);
 }
 
 
@@ -87,6 +88,42 @@ int position_to_piece_number(Board* board, int pos){
 	if(board->pieces[Queen] & mask) return Queen;
 	if(board->pieces[King] & mask) return King;
 	return 0; // value for no piece
+}
+
+int square_attacked(Board* board, int square, int attacker_color){
+    uint64_t candidates = board->pieces[attacker_color];
+    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
+    int col = square % 8;
+    int row = square / 8;
+
+    uint64_t pawns = board->pieces[Pawn] & candidates;
+    if (attacker_color && (attack_data.pawn_black[square] & pawns)) return 1;
+    if (!attacker_color && (attack_data.pawn_white[square] & pawns)) return 1;
+
+    if((board->pieces[Knight] & candidates) & attack_data.knight[square]) return 1;
+    if((board->pieces[King] & candidates) & attack_data.king[square]) return 1;
+
+    /* Horizontal/vertical sliding pieces */
+	uint64_t row_attack = occupancy_table_lookup(col, generate_row_occupancy_key(row, occupancy)) << (8*row); // row
+	uint64_t col_attack = occupancy_table_lookup(row, generate_col_occupancy_key(col, occupancy));
+
+	col_attack = col_attack * attack_data.ruld[RULD_INDEX(0)]; // Multiply to convert row to col. Data is in rightmost column
+    col_attack = swap_uint64(col_attack); // Vertical flip by reversing
+    col_attack = (col_attack >> (7 - col)) & attack_data.col[col]; // Shift to appropriate position and isolate the resulting attack column
+
+	if((row_attack | col_attack) & (candidates & (board->pieces[Rook] | board->pieces[Queen]))){ return 1; }
+
+	/* Diagonal sliding pieces */
+    uint64_t ruld_attack = occupancy_table_lookup(col, generate_ruld_occupancy_key(square, occupancy));
+    ruld_attack = ((ruld_attack * attack_data.col[0]) & attack_data.ruld[RULD_INDEX(square)]); // Convert attack row to ruld diag, isolate bits
+
+    uint64_t lurd_attack = occupancy_table_lookup(col, generate_lurd_occupancy_key(square, occupancy));
+    lurd_attack = ((lurd_attack * attack_data.col[0]) & attack_data.lurd[LURD_INDEX(square)]); // Convert attack row to lurd diag, isolate bits
+
+	if((ruld_attack | lurd_attack) & (candidates & (board->pieces[Bishop] | board->pieces[Queen]))){ return 1; }
+
+    return 0;
+
 }
 
 char* piece_to_string(int piece){

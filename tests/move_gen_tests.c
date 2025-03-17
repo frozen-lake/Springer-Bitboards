@@ -164,8 +164,44 @@ int test_generate_king_moves(){
     return success;
 }
 
+int test_generate_legal_moves(){
+    Game* game = create_game();
+
+    char* fen = "3rk3/8/8/7N/5p2/5P2/P3P2P/R3K2R w K - 0 2";
+    int success = load_fen(game, fen);
+    
+    MoveList expected_moves;
+    move_list_init(&expected_moves);
+
+    move_list_add(&expected_moves, A1 | (B1 << 6) | (Rook << 12));
+    move_list_add(&expected_moves, A1 | (C1 << 6) | (Rook << 12));
+    move_list_add(&expected_moves, A1 | (D1 << 6) | (Rook << 12));
+    move_list_add(&expected_moves, A2 | (A3 << 6) | (Pawn << 12));
+    move_list_add(&expected_moves, A2 | (A4 << 6) | (Pawn << 12));
+    move_list_add(&expected_moves, E2 | (E3 << 6) | (Pawn << 12));
+    move_list_add(&expected_moves, E2 | (E4 << 6) | (Pawn << 12));
+    move_list_add(&expected_moves, H2 | (H3 << 6) | (Pawn << 12));
+    move_list_add(&expected_moves, H2 | (H4 << 6) | (Pawn << 12));
+    move_list_add(&expected_moves, E1 | (F2 << 6) | (King << 12));
+    move_list_add(&expected_moves, E1 | (F1 << 6) | (King << 12));
+    move_list_add(&expected_moves, E1 | (G1 << 6) | (King << 12) | (Kingside << 21));
+    move_list_add(&expected_moves, H5 | (G3 << 6) | (Knight << 12));
+    move_list_add(&expected_moves, H5 | (F4 << 6) | (Knight << 12) | (Pawn << 15));
+    move_list_add(&expected_moves, H5 | (F6 << 6) | (Knight << 12));
+    move_list_add(&expected_moves, H5 | (G7 << 6) | (Knight << 12));
+    move_list_add(&expected_moves, H1 | (G1 << 6) | (Rook << 12));
+    move_list_add(&expected_moves, H1 | (F1 << 6) | (Rook << 12));
+
+
+    generate_legal_moves(game, White);
+    success = success && compare_generated_moves(&expected_moves, &game->legal_moves);
+
+    destroy_game(game);
+    return success;
+}
+
 void move_gen_tests(){
-    int num_tests = 7;
+    int num_tests = 8;
 
 	int (*test_cases[num_tests])();
 	char* test_case_names[num_tests];
@@ -177,6 +213,7 @@ void move_gen_tests(){
     test_cases[4] = test_generate_pawn_moves;
     test_cases[5] = test_generate_pawn_moves_en_passant;
     test_cases[6] = test_generate_king_moves;
+    test_cases[7] = test_generate_legal_moves;
 
 	test_case_names[0] = "test_encode_move";
 	test_case_names[1] = "test_encode_move_capture";
@@ -185,6 +222,7 @@ void move_gen_tests(){
 	test_case_names[4] = "test_generate_pawn_moves";
 	test_case_names[5] = "test_generate_pawn_moves_en_passant";
 	test_case_names[6] = "test_generate_king_moves";
+	test_case_names[7] = "test_generate_legal_moves";
 
     run_tests(test_cases, test_case_names, num_tests);
 }

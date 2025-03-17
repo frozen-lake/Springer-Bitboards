@@ -13,7 +13,7 @@ enum Special {
 };
 
 
-#define MAX_MOVES 218
+#define MAX_MOVES 256
 
 typedef uint32_t Move;
 
@@ -65,7 +65,7 @@ void print_moves(MoveList* move_list);
 
 void move_list_init(MoveList* move_list);
 void move_list_add(MoveList* move_list, Move move);
-void move_list_clear(MoveList* move_list);
+void move_list_copy(MoveList* src, MoveList* dest);
 
 Move encode_move(int src, int dest, Board* board);
 Move encode_promotion(int src, int dest, Board* board, int promotion);
