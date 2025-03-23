@@ -141,14 +141,59 @@ void filter_legal_moves(MoveList* move_list, Game* game){
                 move_list->moves[i] = move_list->moves[num_legal_moves];
                 move_list->moves[num_legal_moves] = tmp;
             }
-            
             num_legal_moves += 1;
         }
     }
     move_list->size = num_legal_moves;
 }
 
+void order_moves(MoveList* move_list, Game* game){
+    /* Indexed by victim and by attacker, value is (victim value - attacker value) */
+    int MVV_LVA[8][8] = {
+        {0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, -2, -2, -4, -8, -99},
+        {0, 0, 2, 0, 0, -2, -5, -99},
+        {0, 0, 2, 0, 0, -2, -5, -99},
+        {0, 0, 4, 2, 2, 0, -4, -99},
+        {0, 0, 8, 5, 5, 4, 0, -99},
+        {0, 0, 99, 99, 99, 99, 99, 0}
+    };
+    int MVV_LVA_TABLE_OFFSET = 3;
+    for(int i=0;i<8;i++){
+        for(int j=0;j<8;j++){
+            MVV_LVA[i][j] += MVV_LVA_TABLE_OFFSET;
+        }
+    }
+
+    int captures_start = 0;
+    int captures = 0;
+
+    /* Move captures to front and sort by MVV-LVA */
+    for(int i=0;i<move_list->size;i++){
+        Move move = move_list->moves[i];
+        int piece = get_move_piece(move);
+        int capture = get_move_capture(move);
+        if(capture){
+            Move tmp = move_list->moves[i];
+            move_list->moves[i] = move_list->moves[captures];
+            move_list->moves[captures] = tmp;
+
+            captures += 1;
+
+            for(int j=captures_start + (captures - 2);j>=captures_start;j--){
+                if(MVV_LVA[capture][piece] > MVV_LVA[get_move_capture(move_list->moves[j])][get_move_piece(move_list->moves[j])]){
+                    Move tmp = move_list->moves[j];
+                    move_list->moves[j] = move_list->moves[j+1];
+                    move_list->moves[j+1] = tmp;
+                }
+            }
+        }
+    }
+}
+
 void generate_legal_moves(Game* game, int color){
     generate_all_moves(&game->legal_moves, game, color);
     filter_legal_moves(&game->legal_moves, game);
+    order_moves(&game->legal_moves, game);
 }
