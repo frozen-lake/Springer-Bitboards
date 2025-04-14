@@ -5,7 +5,7 @@
 #ifndef GAME_H
 #define GAME_H
 
-#define DEBUG 1
+#define DEBUG_ERR 0
 
 typedef struct Game Game;
 

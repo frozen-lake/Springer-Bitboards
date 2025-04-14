@@ -149,13 +149,15 @@ int parse_algebraic_move(char* input, Game* game) {
 
     /* Parse destination square */
     int destination = parse_square(destination_square);
-    if (DEBUG && destination < 0) {
-        fprintf(stderr, "Invalid destination square: %s\n", destination_square);
+    if (destination < 0) {
+        if(DEBUG_ERR){ 
+            fprintf(stderr, "Invalid destination square: %s\n", destination_square);
+        }
         return -1;
     }
 
     /* Check for pawn capture */
-    if(strlen(input) == 5 && strchr("abcdefgh", input[0]) && (input[1]=='x')){
+    if(strlen(input) == 4 && strchr("abcdefgh", input[0]) && (input[1]=='x')){
         int src = input[0] - 97; // Column
         if(game->side_to_move){ // Row
             src += 8 * (input[3] - 50);
@@ -166,16 +168,18 @@ int parse_algebraic_move(char* input, Game* game) {
         if(game->en_passant != destination){
             return encode_move(src, destination, board);
         } else {
-            return src | (destination << 6) | (Pawn << 12) | (Pawn << 15) | (1 << 21);
+            return src | (destination << 6) | (Pawn << 12) | (Pawn << 15) | (EnPassant << 21);
         }
     }
 
 
     /* Find the source square */
     int src = find_source_square(board, piece, destination, file_hint, rank_hint);
-    if (DEBUG && src < 0) {
-	fprintf(stderr, "No valid source square found for move: %spiece: %c, dest: %d, fhint: %d, rhint: %d, source: %d\n",
-        input, piece, destination, file_hint, rank_hint, src);
+    if (src < 0) {
+	    if(DEBUG_ERR) {
+            fprintf(stderr, "No valid source square found for move: %spiece: %c, dest: %d, fhint: %d, rhint: %d, source: %d\n",
+                    input, piece, destination, file_hint, rank_hint, src);
+        }
         return -1;
     }
 

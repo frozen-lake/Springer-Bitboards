@@ -22,10 +22,13 @@ Move get_player_move(Game* game){
 
     if(fgets(buffer, sizeof(buffer), stdin) != NULL){
         printf("\n");
-        return parse_algebraic_move(buffer, game);
+        int move = parse_algebraic_move(buffer, game);
+        free(buffer);
+        return move;
     } else {
-        printf("Error: BAD INPUT");
+        printf("Error: BAD INPUT\n");
     }
+    free(buffer);
     return 0;
 }
 
@@ -61,19 +64,48 @@ int main(){
             break;
     }
 
+    /* MAIN GAME LOOP */
+    char move_buffer[16];
     while(1){
-
-        // make move sometimes fails, switches player turn anyway. fix
+        /* PLAYER TURN */
         print_board(game->board);
-        Move move = get_player_move(game);
+        printf("Enter move (%s): ", (game->side_to_move?"White":"Black"));
 
-        if(DEBUG){ print_move(move); }
+        memset(move_buffer, 0, 16);
+        if(fgets(move_buffer, sizeof(move_buffer), stdin) == NULL){
+            printf("Error: BAD INPUT\n");
+            continue;
+        }
+
+        for(int i=0;i<(int)strlen(move_buffer);i++){
+            if(move_buffer[i] == '\n'){ move_buffer[i] = '\0'; }
+        }
+
+        Move move = parse_algebraic_move(move_buffer, game);
 
         if(is_legal_player_move(game, move)){
+            printf("\n<--%s PLAYED: %s-->\n", (game->side_to_move?"WHITE":"BLACK"), move_buffer);
             make_move(game, move); 
         } else {
-
+            printf("\n<--ILLEGAL MOVE-->\n");
+            continue;
         }
+
+
+        /* AI TURN */
+        
+        /*
+        move = find_move(game);
+        if(is_legal_player_move(game, move)){
+            printf("\n<--%s PLAYED: %s-->\n", (game->side_to_move?"WHITE":"BLACK"), move_buffer);
+            make_move(game, move); 
+        } else {
+            fprintf(stderr, "\nEXCEPTION: ILLEGAL AI MOVE MOVE\n");
+            destroy_game(game);
+            return -1;
+        }
+        */
+
     }
 
 

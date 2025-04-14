@@ -12,8 +12,8 @@ enum Piece {
 	Knight,
 	Bishop,
 	Rook,
-	King,
 	Queen,
+	King,
 };
 
 enum Square {
