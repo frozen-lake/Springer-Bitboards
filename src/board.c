@@ -5,6 +5,16 @@
 #include "attack_data.h"
 #include "game.h"
 
+ZobristKeys zobrist_keys;
+
+static int count_bits(uint64_t bb){
+	int count = 0;
+	while(bb){
+		bb &= bb - 1;
+		count++;
+	}
+	return count;
+}
 
 /* Create and return an empty Board. */
 Board* create_board(){
@@ -31,6 +41,57 @@ void initialize_board(Board* board){
 	populate_attack_maps(board);
 }
 
+uint64_t random_u64(void){
+	uint64_t result = 0;
+	result = rand();
+	for(int i=0;i<4;i++){
+		result = (result << 15) | rand();
+	}
+	return result;
+}
+
+void initialize_zobrist(Game* game){
+	srand(1234567);
+	Board* board = game->board;
+
+	for(int color=0; color<2; color++){
+		for(int piece=0; piece<6; piece++){
+			for(int square=0; square<64; square++){
+				zobrist_keys.piece_square[color][piece][square] = random_u64();
+			}
+		}
+	}
+
+	for(int i=0; i<16; i++){
+		zobrist_keys.castling_rights[i] = random_u64();
+	}
+	for(int i=0; i<8; i++){
+		zobrist_keys.en_passant_file[i] = random_u64();
+	}
+	zobrist_keys.side_to_move = random_u64();
+
+
+	/* */
+	board->zobrist_hash = 0;
+
+	uint64_t occupied = board->pieces[White] | board->pieces[Black];
+	while(occupied){
+		int src = get_lsb_index(occupied);
+        occupied &= occupied - 1;
+		uint8_t color = !!(board->pieces[White] & U64_MASK(src));
+		int piece = position_to_piece_number(board, src);
+		int piece_index = piece - Pawn;
+		board->zobrist_hash ^= zobrist_keys.piece_square[color][piece_index][src];
+	}
+	board->zobrist_hash ^= zobrist_keys.castling_rights[game->castling_rights];
+	if(game->en_passant != -1) {
+		board->zobrist_hash ^= zobrist_keys.en_passant_file[game->en_passant % 8];
+	}
+	if(!game->side_to_move){
+		board->zobrist_hash ^= zobrist_keys.side_to_move;
+	}
+
+}
 
 
 /* Prints the board state. */
@@ -50,6 +111,7 @@ void empty_board(Board* board){
 	board->pieces[Black] = board->pieces[White] = board->pieces[Pawn] = board->pieces[Knight] = board->pieces[Bishop] = board->pieces[Rook] = board->pieces[Queen] = board->pieces[King] = 0;
 	for(int i=0;i<64;i++){
 		board->attack_from[i] = 0;
+		board->attack_to[i] = 0;
 	}
 }
 
@@ -143,4 +205,43 @@ char* piece_to_string(int piece){
 		default:
 			return "None";
 	}
+}
+
+int board_validate(Board* board){
+	uint64_t white = board->pieces[White];
+	uint64_t black = board->pieces[Black];
+	uint64_t occupancy = white | black;
+
+	if(white & black){
+		return 0;
+	}
+
+	uint64_t type_union = board->pieces[Pawn]
+		| board->pieces[Knight]
+		| board->pieces[Bishop]
+		| board->pieces[Rook]
+		| board->pieces[Queen]
+		| board->pieces[King];
+
+	if(type_union != occupancy){
+		return 0;
+	}
+
+	uint64_t overlap = 0;
+	overlap |= board->pieces[Pawn] & (board->pieces[Knight] | board->pieces[Bishop] | board->pieces[Rook] | board->pieces[Queen] | board->pieces[King]);
+	overlap |= board->pieces[Knight] & (board->pieces[Bishop] | board->pieces[Rook] | board->pieces[Queen] | board->pieces[King]);
+	overlap |= board->pieces[Bishop] & (board->pieces[Rook] | board->pieces[Queen] | board->pieces[King]);
+	overlap |= board->pieces[Rook] & (board->pieces[Queen] | board->pieces[King]);
+	overlap |= board->pieces[Queen] & board->pieces[King];
+	if(overlap){
+		return 0;
+	}
+
+	int white_kings = count_bits(board->pieces[King] & white);
+	int black_kings = count_bits(board->pieces[King] & black);
+	if(white_kings != 1 || black_kings != 1){
+		return 0;
+	}
+
+	return 1;
 }

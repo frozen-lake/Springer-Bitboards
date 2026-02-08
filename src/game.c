@@ -19,7 +19,10 @@ Game* create_game(){
 	game->castling_rights = 0b1111;
 	game->game_length = 0;
 	game->move_history_capacity = MAX_MOVES;
-	game->move_history = (Move*) calloc(game->move_history_capacity, 4);
+	game->move_history = (Move*) calloc(game->move_history_capacity, sizeof(Move));
+	game->castling_rights_history = (uint8_t*) calloc(game->move_history_capacity, sizeof(uint8_t));
+	game->en_passant_history = (int*) calloc(game->move_history_capacity, sizeof(int));
+	game->zobrist_history = (uint64_t*) calloc(game->move_history_capacity, sizeof(uint64_t));
 
 	move_list_init(&game->legal_moves);
 
@@ -32,6 +35,10 @@ void destroy_game(Game* game){
 		destroy_board(game->board);
 		game->board = NULL;
 	}
+	free(game->move_history);
+	free(game->castling_rights_history);
+	free(game->en_passant_history);
+	free(game->zobrist_history);
 	free(game);
 }
 
@@ -48,7 +55,14 @@ int load_fen(Game* game, char* str){
 	Board* board = create_board();
 	// Split up FEN by spaces
 	char fen[70];
-	strcpy(fen, str);
+	if(str == NULL){
+		free(board);
+		return 0;
+	}
+	if(snprintf(fen, sizeof(fen), "%s", str) >= (int)sizeof(fen)){
+		free(board);
+		return 0;
+	}
 	char* delim = " ";
 
 	char* fen_field[6]; // pieces, turn, optional castling rights, en passant,  
@@ -65,8 +79,12 @@ int load_fen(Game* game, char* str){
 		game->side_to_move = (fen_field[1][0] == 'b') ? 0 : 1;
 	}
 	
-	// Split field 0 into ranks by '/'	
-	strcpy(fen, fen_field[0]);
+	// Split field 0 into ranks by '/' 
+	if(fen_field[0] == NULL){ free(board); return 0; }
+	if(snprintf(fen, sizeof(fen), "%s", fen_field[0]) >= (int)sizeof(fen)){
+		free(board);
+		return 0;
+	}
 	char* ranks[8];
 	delim = "/";
 	ranks[0] = strtok(fen, delim);
@@ -189,6 +207,59 @@ void make_move(Game* game, Move move){
 	int capture = get_move_capture(move);
 	int special = get_move_special(move);
 
+	if(game->game_length >= game->move_history_capacity){
+		int new_capacity = game->move_history_capacity * 2;
+		Move* move_history = (Move*) calloc(new_capacity, sizeof(Move));
+		uint8_t* castling_history = (uint8_t*) calloc(new_capacity, sizeof(uint8_t));
+		int* en_passant_history = (int*) calloc(new_capacity, sizeof(int));
+		uint64_t* zobrist_history = (uint64_t*) calloc(new_capacity, sizeof(uint64_t));
+		if(!move_history || !castling_history || !en_passant_history || !zobrist_history){
+			free(move_history);
+			free(castling_history);
+			free(en_passant_history);
+			free(zobrist_history);
+			return;
+		}
+		memcpy(move_history, game->move_history, game->move_history_capacity * sizeof(Move));
+		memcpy(castling_history, game->castling_rights_history, game->move_history_capacity * sizeof(uint8_t));
+		memcpy(en_passant_history, game->en_passant_history, game->move_history_capacity * sizeof(int));
+		memcpy(zobrist_history, game->zobrist_history, game->move_history_capacity * sizeof(uint64_t));
+		free(game->move_history);
+		free(game->castling_rights_history);
+		free(game->en_passant_history);
+		free(game->zobrist_history);
+		game->move_history_capacity = new_capacity;
+		game->move_history = move_history;
+		game->castling_rights_history = castling_history;
+		game->en_passant_history = en_passant_history;
+		game->zobrist_history = zobrist_history;
+	}
+	game->castling_rights_history[game->game_length] = game->castling_rights;
+	game->en_passant_history[game->game_length] = game->en_passant;
+	game->zobrist_history[game->game_length] = board->zobrist_hash;
+	uint8_t old_castling = game->castling_rights;
+	int old_en_passant = game->en_passant;
+
+	int capture_square = dest;
+	if(capture && special == EnPassant){
+		capture_square = color ? dest - 8 : dest + 8;
+	}
+
+	int piece_index = piece_type - Pawn;
+	board->zobrist_hash ^= zobrist_keys.piece_square[color][piece_index][src];
+	board->zobrist_hash ^= zobrist_keys.piece_square[color][piece_index][dest];
+	if(capture){
+		int capture_index = capture - Pawn;
+		board->zobrist_hash ^= zobrist_keys.piece_square[!color][capture_index][capture_square];
+	}
+	if(special > EnPassant){
+		int rook_src = (special == Kingside) ? src + 3 : src - 4;
+		int rook_dest = (special == Kingside) ? src + 1 : src - 1;
+		int rook_index = Rook - Pawn;
+		board->zobrist_hash ^= zobrist_keys.piece_square[color][rook_index][rook_src];
+		board->zobrist_hash ^= zobrist_keys.piece_square[color][rook_index][rook_dest];
+	}
+
 	/* Update piece bitboards */
 	board->pieces[piece_type] -= U64_MASK(src);
 	board->pieces[piece_type] += U64_MASK(dest);
@@ -295,10 +366,6 @@ void make_move(Game* game, Move move){
 	}
 
 	/* Update move_history */
-	if(game->game_length >= game->move_history_capacity){
-		game->move_history_capacity *= 2;
-		game->move_history = (Move*) realloc(game->move_history, game->move_history_capacity * 4);
-	}
 	game->move_history[game->game_length] = move;
 	game->game_length += 1;
 
@@ -313,11 +380,89 @@ void make_move(Game* game, Move move){
 		if(src == H8) game->castling_rights &= 0b1110;
 	}
 
+	board->zobrist_hash ^= zobrist_keys.castling_rights[old_castling];
+	board->zobrist_hash ^= zobrist_keys.castling_rights[game->castling_rights];
+	if(old_en_passant != -1){
+		board->zobrist_hash ^= zobrist_keys.en_passant_file[old_en_passant % 8];
+	}
+	if(game->en_passant != -1){
+		board->zobrist_hash ^= zobrist_keys.en_passant_file[game->en_passant % 8];
+	}
+	board->zobrist_hash ^= zobrist_keys.side_to_move;
+
 	game->side_to_move = !(game->side_to_move);
 
 	move_list_init(&game->legal_moves);
 	generate_legal_moves(game, game->side_to_move);
+	if(DEBUG_ERR && !board_validate(board)){
+		fprintf(stderr, "board_validate failed after make_move\n");
+	}
 
+}
+
+void unmake_move(Game* game, Move move, uint8_t depth){
+	(void)depth;
+	if(game->game_length <= 0){
+		return;
+	}
+
+	Board* board = game->board;
+	int index = game->game_length - 1;
+	int color = !game->side_to_move;
+
+	int dest = get_move_dest(move);
+	int src = get_move_src(move);
+	int piece_type = get_move_piece(move);
+	int capture = get_move_capture(move);
+	int special = get_move_special(move);
+
+	int capture_square = dest;
+	if(capture && special == EnPassant){
+		capture_square = color ? dest - 8 : dest + 8;
+	}
+
+	game->side_to_move = color;
+	game->castling_rights = game->castling_rights_history[index];
+	game->en_passant = game->en_passant_history[index];
+	board->zobrist_hash = game->zobrist_history[index];
+
+	if(special > EnPassant){
+		int rook_src = (special == Kingside) ? src + 3 : src - 4;
+		int rook_dest = (special == Kingside) ? src + 1 : src - 1;
+		board->pieces[Rook] -= U64_MASK(rook_dest);
+		board->pieces[Rook] += U64_MASK(rook_src);
+		board->pieces[color] -= U64_MASK(rook_dest);
+		board->pieces[color] += U64_MASK(rook_src);
+	}
+
+	board->pieces[piece_type] -= U64_MASK(dest);
+	board->pieces[piece_type] += U64_MASK(src);
+
+	if(color){
+		board->pieces[White] -= U64_MASK(dest);
+		board->pieces[White] += U64_MASK(src);
+	} else {
+		board->pieces[Black] -= U64_MASK(dest);
+		board->pieces[Black] += U64_MASK(src);
+	}
+
+	if(capture){
+		board->pieces[capture] += U64_MASK(capture_square);
+		if(color){
+			board->pieces[Black] += U64_MASK(capture_square);
+		} else {
+			board->pieces[White] += U64_MASK(capture_square);
+		}
+	}
+
+	populate_attack_maps(board);
+	move_list_init(&game->legal_moves);
+	generate_legal_moves(game, game->side_to_move);
+	if(DEBUG_ERR && !board_validate(board)){
+		fprintf(stderr, "board_validate failed after unmake_move\n");
+	}
+
+	game->game_length -= 1;
 }
 
 uint64_t swap_uint64(uint64_t num){

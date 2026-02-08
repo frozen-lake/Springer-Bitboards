@@ -160,7 +160,9 @@ int parse_algebraic_move(char* input, Game* game) {
         return -1;
     }
 
-    if(input[1] == 'x' && !((board->pieces[White] | board->pieces[Black]) & (1 << destination))){
+    if(input[1] == 'x'
+        && !((board->pieces[White] | board->pieces[Black]) & (1 << destination))
+        && (game->en_passant != destination)){
         return -1;
     }
 

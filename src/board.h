@@ -5,6 +5,15 @@
 
 #define U64_MASK(n) (UINT64_C(1) << (n))
 
+typedef struct {
+	uint64_t piece_square[2][6][64];  /* [color][piece_type][square] */
+	uint64_t castling_rights[16];
+	uint64_t en_passant_file[8];
+	uint64_t side_to_move;
+} ZobristKeys;
+
+extern ZobristKeys zobrist_keys;
+
 enum Piece {
 	Black,
 	White,
@@ -28,13 +37,14 @@ enum Square {
 };
 
 typedef struct {
-
-	uint64_t attack_from[64]; 
-	uint64_t attack_to[64]; // WIP - placeholder, initialized but not maintained via incremental update
+	uint64_t attack_from[64];  /* [square] = bitboard of squares attacking FROM this square */
+	uint64_t attack_to[64];    /* [square] = bitboard of pieces attacking TO this square */
 	uint64_t pieces[8];
-
+	uint64_t zobrist_hash;
 
 } Board;
+
+typedef struct Game Game;
 
 #endif
 
@@ -51,6 +61,10 @@ void destroy_board(Board* board);
 void initialize_board(Board* board);
 void empty_board(Board* board);
 void print_board(Board* board);
+
+int board_validate(Board* board);
+
+void initialize_zobrist(Game* game);
 
 void print_bitboard(uint64_t bb);
 

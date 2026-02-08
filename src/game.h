@@ -6,12 +6,16 @@
 #define GAME_H
 
 #define DEBUG_ERR 0
+#define DEBUG_PERF 1
 
 typedef struct Game Game;
 
 struct Game {
 	MoveList legal_moves;
 	Move* move_history;
+	uint8_t* castling_rights_history;
+	int* en_passant_history;
+	uint64_t* zobrist_history;
 	Board* board;
 	int side_to_move;
 	int game_length;
@@ -34,6 +38,7 @@ void initialize_game(Game* game);
 int load_fen(Game* game, char* str);
 
 void make_move(Game* game, Move move);
+void unmake_move(Game* game, Move move, uint8_t depth);
 
 
 /* Utilities */

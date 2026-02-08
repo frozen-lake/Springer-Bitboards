@@ -73,6 +73,46 @@ int test_make_move(){
 	return success;
 }
 
+int test_zobrist_hash_after_move(){
+	Game* game = create_game();
+	initialize_game(game);
+	initialize_zobrist(game);
+
+	uint64_t hash_before = game->board->zobrist_hash;
+	Move e4 = encode_move(E2, E4, game->board);
+	make_move(game, e4);
+	uint64_t hash_after = game->board->zobrist_hash;
+
+	destroy_game(game);
+	return hash_after != hash_before;
+}
+
+int test_unmake_move_round_trip(){
+	Game* game = create_game();
+	initialize_game(game);
+	initialize_zobrist(game);
+
+	uint64_t pieces_before[8];
+	memcpy(pieces_before, game->board->pieces, sizeof(pieces_before));
+	uint64_t hash_before = game->board->zobrist_hash;
+	int side_before = game->side_to_move;
+	int en_passant_before = game->en_passant;
+	uint8_t castling_before = game->castling_rights;
+
+	Move e4 = encode_move(E2, E4, game->board);
+	make_move(game, e4);
+	unmake_move(game, e4, 0);
+
+	int success = memcmp(pieces_before, game->board->pieces, sizeof(pieces_before)) == 0;
+	success = success && (hash_before == game->board->zobrist_hash);
+	success = success && (side_before == game->side_to_move);
+	success = success && (en_passant_before == game->en_passant);
+	success = success && (castling_before == game->castling_rights);
+
+	destroy_game(game);
+	return success;
+}
+
 int run_tests(int (*test_cases[])(), char** test_case_names, int num_cases){
 	int result = 1;
 	for(int i=0;i<num_cases;i++){
@@ -90,7 +130,7 @@ int main(){
 	initialize_attack_data();
 
 
-	int num_tests = 3;
+	int num_tests = 5;
 
 	int (*test_cases[num_tests])(); // array of function pointers
 	char* test_case_names[num_tests];
@@ -98,10 +138,14 @@ int main(){
 	test_cases[0] = test_load_fen;
 	test_cases[1] = test_make_move;
 	test_cases[2] = test_game_init;
+	test_cases[3] = test_zobrist_hash_after_move;
+	test_cases[4] = test_unmake_move_round_trip;
 
 	test_case_names[0] = "test_load_fen";
 	test_case_names[1] = "test_make_move";
 	test_case_names[2] = "test_game_init";
+	test_case_names[3] = "test_zobrist_hash_after_move";
+	test_case_names[4] = "test_unmake_move_round_trip";
 
 
 	printf("====== GAME TESTS ======\n");

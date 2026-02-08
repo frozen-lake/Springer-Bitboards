@@ -7,20 +7,30 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define INPUT_MAX 16
+
 char* get_input(){
-    char* buffer = calloc(16, sizeof(char));
-    if(fgets(buffer, sizeof(buffer), stdin) == NULL){
+    char* buffer = calloc(INPUT_MAX, sizeof(char));
+    if(!buffer){
+        return NULL;
+    }
+    if(fgets(buffer, INPUT_MAX, stdin) == NULL){
         printf("\nError: BAD INPUT");
+        free(buffer);
+        return NULL;
     }
     return buffer;
 }
 
 Move get_player_move(Game* game){
     printf("Enter move (%s): ", (game->side_to_move?"White":"Black"));
-    char* buffer = calloc(16, sizeof(char));
-    buffer[strcspn(buffer, "\r\n")] = '\0'; // strip newline
+    char* buffer = calloc(INPUT_MAX, sizeof(char));
+    if(!buffer){
+        return 0;
+    }
 
-    if(fgets(buffer, sizeof(buffer), stdin) != NULL){
+    if(fgets(buffer, INPUT_MAX, stdin) != NULL){
+        buffer[strcspn(buffer, "\r\n")] = '\0'; // strip newline
         printf("\n");
         int move = parse_algebraic_move(buffer, game);
         free(buffer);
@@ -53,7 +63,6 @@ int main(){
     }
     printf("input was %s\n", input);
 
-    
     initialize_game(game);
     switch(input[0]){
         case '1':
@@ -63,6 +72,8 @@ int main(){
         default:
             break;
     }
+
+    free(input);
 
     /* MAIN GAME LOOP */
     char move_buffer[16];
@@ -87,7 +98,7 @@ int main(){
             printf("\n<--%s PLAYED: %s-->\n", (game->side_to_move?"WHITE":"BLACK"), move_buffer);
             make_move(game, move); 
         } else {
-            printf("\n<--ILLEGAL MOVE-->\n");
+            printf("\n<--ILLEGAL MOVE: %s-->\n", move_buffer);
             continue;
         }
 
