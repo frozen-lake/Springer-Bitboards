@@ -165,6 +165,17 @@ int test_is_legal_move(){
 	return legal && !illegal;
 }
 
+int test_is_legal_move_en_passant(){
+	Game* game = create_game();
+	load_fen(game, "4k3/7b/8/4Pp2/8/8/2K5/8 w - f6 0 1");
+
+	Move en_passant = E5 | (F6 << 6) | (Pawn << 12) | (Pawn << 15) | (EnPassant << 21);
+	int legal = is_legal_move(game, en_passant);
+
+	destroy_game(game);
+	return !legal;
+}
+
 void move_tests(){
 	int num_tests = 4;
 
@@ -187,7 +198,7 @@ void move_tests(){
 
 void attack_tests(){
 	
-	int num_tests = 7;
+	int num_tests = 8;
 
 	int (*test_cases[num_tests])();
 	char* test_case_names[num_tests];
@@ -199,6 +210,7 @@ void attack_tests(){
 	test_cases[4] = test_generate_occupancy_table;
 	test_cases[5] = test_square_attacked;
 	test_cases[6] = test_is_legal_move;
+	test_cases[7] = test_is_legal_move_en_passant;
 
 	test_case_names[0] = "test_populate_rook_attack";
 	test_case_names[1] = "test_populate_bishop_attack";
@@ -207,6 +219,7 @@ void attack_tests(){
 	test_case_names[4] = "test_generate_occupancy_table";
 	test_case_names[5] = "test_square_attacked";
 	test_case_names[6] = "test_is_legal_move";
+	test_case_names[7] = "test_is_legal_move_en_passant";
 
     run_tests(test_cases, test_case_names, num_tests);
 }

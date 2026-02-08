@@ -41,9 +41,13 @@ int is_legal_move(Game* game, Move move){
      */
     board->pieces[color] -= U64_MASK(src);
     board->pieces[piece] -= U64_MASK(src);
+    int capture_square = dest;
+    if(capture && special == EnPassant){
+        capture_square = color ? dest - 8 : dest + 8;
+    }
     if(capture){
-        board->pieces[!color] -= U64_MASK(dest);
-        board->pieces[capture] -= U64_MASK(dest);
+        board->pieces[!color] -= U64_MASK(capture_square);
+        board->pieces[capture] -= U64_MASK(capture_square);
     } 
     board->pieces[color] += U64_MASK(dest);
     board->pieces[piece] += U64_MASK(dest);
@@ -62,8 +66,8 @@ int is_legal_move(Game* game, Move move){
     board->pieces[piece] -= U64_MASK(dest);
     board->pieces[color] -= U64_MASK(dest);
     if(capture){
-        board->pieces[capture] += U64_MASK(dest);
-        board->pieces[!color] += U64_MASK(dest);
+        board->pieces[capture] += U64_MASK(capture_square);
+        board->pieces[!color] += U64_MASK(capture_square);
     }
     board->pieces[piece] += U64_MASK(src);
     board->pieces[color] += U64_MASK(src);
@@ -153,6 +157,10 @@ int parse_algebraic_move(char* input, Game* game) {
         if(DEBUG_ERR){ 
             fprintf(stderr, "Invalid destination square: %s\n", destination_square);
         }
+        return -1;
+    }
+
+    if(input[1] == 'x' && !((board->pieces[White] | board->pieces[Black]) & (1 << destination))){
         return -1;
     }
 
