@@ -1,0 +1,1 @@
+void transposition_table_tests();

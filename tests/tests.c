@@ -3,6 +3,8 @@
 #include <string.h>
 #include "attack_and_move_tests.h"
 #include "move_gen_tests.h"
+#include "search_tests.h"
+#include "transposition_table_tests.h"
 #include "../src/game.h"
 #include "../src/move.h"
 #include "../src/attack_data.h"
@@ -113,6 +115,12 @@ int main(){
 
 	printf("====== MOVE GEN TESTS ======\n");
 	move_gen_tests();
+
+	printf("====== SEARCH TESTS ======\n");
+	search_tests();
+
+	printf("====== TRANSPOSITION TABLE TESTS ======\n");
+	transposition_table_tests();
 
 	printf("======\n");
 	
