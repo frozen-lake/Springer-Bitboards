@@ -18,7 +18,7 @@ Game* create_game(){
 
 	game->castling_rights = 0b1111;
 	game->game_length = 0;
-	game->move_history_capacity = MAX_MOVES;
+	game->move_history_capacity = 512;
 	game->move_history = (Move*) calloc(game->move_history_capacity, sizeof(Move));
 	game->castling_rights_history = (uint8_t*) calloc(game->move_history_capacity, sizeof(uint8_t));
 	game->en_passant_history = (int*) calloc(game->move_history_capacity, sizeof(int));
@@ -207,33 +207,6 @@ void make_move(Game* game, Move move){
 	int capture = get_move_capture(move);
 	int special = get_move_special(move);
 
-	if(game->game_length >= game->move_history_capacity){
-		int new_capacity = game->move_history_capacity * 2;
-		Move* move_history = (Move*) calloc(new_capacity, sizeof(Move));
-		uint8_t* castling_history = (uint8_t*) calloc(new_capacity, sizeof(uint8_t));
-		int* en_passant_history = (int*) calloc(new_capacity, sizeof(int));
-		uint64_t* zobrist_history = (uint64_t*) calloc(new_capacity, sizeof(uint64_t));
-		if(!move_history || !castling_history || !en_passant_history || !zobrist_history){
-			free(move_history);
-			free(castling_history);
-			free(en_passant_history);
-			free(zobrist_history);
-			return;
-		}
-		memcpy(move_history, game->move_history, game->move_history_capacity * sizeof(Move));
-		memcpy(castling_history, game->castling_rights_history, game->move_history_capacity * sizeof(uint8_t));
-		memcpy(en_passant_history, game->en_passant_history, game->move_history_capacity * sizeof(int));
-		memcpy(zobrist_history, game->zobrist_history, game->move_history_capacity * sizeof(uint64_t));
-		free(game->move_history);
-		free(game->castling_rights_history);
-		free(game->en_passant_history);
-		free(game->zobrist_history);
-		game->move_history_capacity = new_capacity;
-		game->move_history = move_history;
-		game->castling_rights_history = castling_history;
-		game->en_passant_history = en_passant_history;
-		game->zobrist_history = zobrist_history;
-	}
 	game->castling_rights_history[game->game_length] = game->castling_rights;
 	game->en_passant_history[game->game_length] = game->en_passant;
 	game->zobrist_history[game->game_length] = board->zobrist_hash;
@@ -264,10 +237,20 @@ void make_move(Game* game, Move move){
 	board->pieces[piece_type] -= U64_MASK(src);
 	board->pieces[piece_type] += U64_MASK(dest);
 
+	/* Update color bitboards */
+	if(color){
+		board->pieces[White] += U64_MASK(dest);
+		board->pieces[White] -= U64_MASK(src);
+		board->pieces[Black] &= (-1 - U64_MASK(dest));
+	} else {
+		board->pieces[Black] += U64_MASK(dest);
+		board->pieces[Black] -= U64_MASK(src);
+		board->pieces[White] &= (-1 - U64_MASK(dest));
+	}
+
 	if(capture != 0){
 		if(!special){
 			board->pieces[capture] -= U64_MASK(dest);
-
 			if(capture == Rook){ // Castling rights
 				switch(dest){
 					case A1:
@@ -284,44 +267,35 @@ void make_move(Game* game, Move move){
 						break;
 				}
 			}
+			board->attack_from[src] = 0;
+			board->attack_from[dest] = 0;
+			generate_attacks(board, dest, piece_type, color);
 		} else if(special == EnPassant){
-			if(color){
-				board->pieces[capture] -= U64_MASK(dest - 8);
-			} else {
-				board->pieces[capture] -= U64_MASK(dest + 8);
-			}
+			board->pieces[capture] -= U64_MASK(capture_square);
+			board->pieces[!color] -= U64_MASK(capture_square);
+			board->attack_from[src] = 0;
+			board->attack_from[capture_square] = 0;
+			generate_attacks(board, dest, piece_type, color);
 		}
 	} else if(special > EnPassant){
-		uint64_t rook_src, rook_dest;
-		if(special == Kingside){ // Kingside
-			rook_src = U64_MASK(src + 3);
-			rook_dest = U64_MASK(src + 1);
-		} else { // Queenside
-			rook_src = U64_MASK(src - 4);
-			rook_dest = U64_MASK(src - 1);
-		}
-		board->pieces[color] -= rook_src;
-		board->pieces[color] += rook_dest;
-		board->pieces[Rook] -= rook_src;
-		board->pieces[Rook] += rook_dest;
-		game->castling_rights -= (0b11 << (color * 2)); 
-	}
+		int rook_src = (special == Kingside) ? src + 3 : src - 4;
+		int rook_dest = (special == Kingside) ? src + 1 : src - 1;
+		
+		board->pieces[color] -= U64_MASK(rook_src);
+		board->pieces[color] += U64_MASK(rook_dest);
+		board->pieces[Rook] -= U64_MASK(rook_src);
+		board->pieces[Rook] += U64_MASK(rook_dest);
 
-	/* Update attack_from at src and dest */
-	board->attack_from[src] = 0;
-	board->attack_from[dest] = 0;
-	generate_attacks(board, dest, piece_type, color);
-
-	/* Update color bitboards */
-	if(color){
-		board->pieces[White] += U64_MASK(dest);
-		board->pieces[White] -= U64_MASK(src);
-		board->pieces[Black] &= (-1 - U64_MASK(dest));
+		board->attack_from[rook_src] = 0;
+		board->attack_from[rook_dest] = 0;
+		generate_attacks(board, rook_dest, Rook, color);
 	} else {
-		board->pieces[Black] += U64_MASK(dest);
-		board->pieces[Black] -= U64_MASK(src);
-		board->pieces[White] &= (-1 - U64_MASK(dest));
+		board->attack_from[src] = 0;
+		board->attack_from[dest] = 0;
+		generate_attacks(board, dest, piece_type, color);
 	}
+
+
 	uint64_t occupancy = board->pieces[White] | board->pieces[Black];
 
 	/* Incremental update rays at src and dest */
@@ -426,6 +400,20 @@ void unmake_move(Game* game, Move move, uint8_t depth){
 	game->en_passant = game->en_passant_history[index];
 	board->zobrist_hash = game->zobrist_history[index];
 
+	/* Restore moved piece */
+	board->pieces[piece_type] -= U64_MASK(dest);
+	board->pieces[piece_type] += U64_MASK(src);
+
+	/* Restore color for moved piece */
+	if(color){
+		board->pieces[White] -= U64_MASK(dest);
+		board->pieces[White] += U64_MASK(src);
+	} else {
+		board->pieces[Black] -= U64_MASK(dest);
+		board->pieces[Black] += U64_MASK(src);
+	}
+
+	/* Restore castling rook if applicable */
 	if(special > EnPassant){
 		int rook_src = (special == Kingside) ? src + 3 : src - 4;
 		int rook_dest = (special == Kingside) ? src + 1 : src - 1;
@@ -435,17 +423,7 @@ void unmake_move(Game* game, Move move, uint8_t depth){
 		board->pieces[color] += U64_MASK(rook_src);
 	}
 
-	board->pieces[piece_type] -= U64_MASK(dest);
-	board->pieces[piece_type] += U64_MASK(src);
-
-	if(color){
-		board->pieces[White] -= U64_MASK(dest);
-		board->pieces[White] += U64_MASK(src);
-	} else {
-		board->pieces[Black] -= U64_MASK(dest);
-		board->pieces[Black] += U64_MASK(src);
-	}
-
+	/* Restore captured piece if applicable */
 	if(capture){
 		board->pieces[capture] += U64_MASK(capture_square);
 		if(color){
@@ -455,7 +433,64 @@ void unmake_move(Game* game, Move move, uint8_t depth){
 		}
 	}
 
-	populate_attack_maps(board);
+	uint64_t occupancy = board->pieces[White] | board->pieces[Black];
+
+	board->attack_from[dest] = 0;
+	board->attack_from[src] = 0;
+	
+	if(capture){
+		board->attack_from[capture_square] = 0;
+	}
+
+	/* Regenerate attacks for all restored pieces */
+	generate_attacks(board, src, piece_type, color);
+	
+	if(capture){
+		int captured_color = !color;
+		generate_attacks(board, capture_square, capture, captured_color);
+	}
+	
+	if(special > EnPassant){
+		int rook_src = (special == Kingside) ? src + 3 : src - 4;
+		int rook_dest = (special == Kingside) ? src + 1 : src - 1;
+		board->attack_from[rook_dest] = 0;
+		board->attack_from[rook_src] = 0;
+		generate_attacks(board, rook_src, Rook, color);
+	}
+
+	/* Update all sliding pieces on affected rays/diagonals */
+	uint64_t update_cols = (attack_data.col[COL_INDEX(src)] | attack_data.col[COL_INDEX(dest)]) 
+	                       & (board->pieces[Rook] | board->pieces[Queen]);
+	uint64_t update_rows = (attack_data.row[ROW_INDEX(src)] | attack_data.row[ROW_INDEX(dest)]) 
+	                       & (board->pieces[Rook] | board->pieces[Queen]);
+
+	while(update_cols){
+		int update_src = get_lsb_index(update_cols);
+		update_cols &= update_cols - 1;
+		populate_col_attack(board, update_src, occupancy);
+	}
+	while(update_rows){
+		int update_src = get_lsb_index(update_rows);
+		update_rows &= update_rows - 1;
+		populate_row_attack(board, update_src, occupancy);
+	}
+
+	uint64_t update_ruld = (attack_data.ruld[RULD_INDEX(src)] | attack_data.ruld[RULD_INDEX(dest)]) 
+	                       & (board->pieces[Bishop] | board->pieces[Queen]);
+	uint64_t update_lurd = (attack_data.lurd[LURD_INDEX(src)] | attack_data.lurd[LURD_INDEX(dest)]) 
+	                       & (board->pieces[Bishop] | board->pieces[Queen]);
+
+	while(update_ruld){
+		int update_src = get_lsb_index(update_ruld);
+		update_ruld &= update_ruld - 1;
+		populate_ruld_attack(board, update_src, occupancy);
+	}
+	while(update_lurd){
+		int update_src = get_lsb_index(update_lurd);
+		update_lurd &= update_lurd - 1;
+		populate_lurd_attack(board, update_src, occupancy);
+	}
+
 	move_list_init(&game->legal_moves);
 	generate_legal_moves(game, game->side_to_move);
 	if(DEBUG_ERR && !board_validate(board)){
