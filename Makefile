@@ -13,8 +13,8 @@ TEST_OBJ_FILES = $(patsubst %.c, $(OBJ_DIR)/%.o, $(notdir $(TEST_FILES)))
 GAME_OBJ_FILES = $(SRC_OBJ_FILES) obj/springer.o
 
 # Default target
-tests: springer_tests.exe
 game: springer.exe
+tests: springer_tests.exe
 
 # Compile
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)

@@ -176,6 +176,39 @@ int test_is_legal_move_en_passant(){
 	return !legal;
 }
 
+int test_is_legal_move_castling(){
+	int success = 1;
+	Move w_kingside = E1 | (G1 << 6) | (King << 12) | (Kingside << 21);
+	Move b_queenside = E8 | (C8 << 6) | (King << 12) | (Queenside << 21);
+
+	Game* game = create_game();
+	load_fen(game, "4k3/8/8/8/8/8/8/R3K2R w K - 0 1");
+	success = success && is_legal_move(game, w_kingside);
+	destroy_game(game);
+
+	game = create_game();
+	load_fen(game, "4r3/8/8/8/8/8/8/R3K2R w K - 0 1");
+	success = success && !is_legal_move(game, w_kingside);
+	destroy_game(game);
+
+	game = create_game();
+	load_fen(game, "4k3/8/8/8/2b5/8/8/R3K2R w K - 0 1");
+	success = success && !is_legal_move(game, w_kingside);
+	destroy_game(game);
+
+	game = create_game();
+	load_fen(game, "4k3/8/8/8/8/8/8/R3KN1R w K - 0 1");
+	success = success && !is_legal_move(game, w_kingside);
+	destroy_game(game);
+
+	game = create_game();
+	load_fen(game, "r3k2r/8/8/8/8/8/8/8 b kq - 0 1");
+	success = success && is_legal_move(game, b_queenside);
+	destroy_game(game);
+
+	return success;
+}
+
 void move_tests(){
 	int num_tests = 4;
 
@@ -198,7 +231,7 @@ void move_tests(){
 
 void attack_tests(){
 	
-	int num_tests = 8;
+	int num_tests = 9;
 
 	int (*test_cases[num_tests])();
 	char* test_case_names[num_tests];
@@ -211,6 +244,7 @@ void attack_tests(){
 	test_cases[5] = test_square_attacked;
 	test_cases[6] = test_is_legal_move;
 	test_cases[7] = test_is_legal_move_en_passant;
+	test_cases[8] = test_is_legal_move_castling;
 
 	test_case_names[0] = "test_populate_rook_attack";
 	test_case_names[1] = "test_populate_bishop_attack";
@@ -220,6 +254,7 @@ void attack_tests(){
 	test_case_names[5] = "test_square_attacked";
 	test_case_names[6] = "test_is_legal_move";
 	test_case_names[7] = "test_is_legal_move_en_passant";
+	test_case_names[8] = "test_is_legal_move_castling";
 
     run_tests(test_cases, test_case_names, num_tests);
 }
