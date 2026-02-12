@@ -38,6 +38,17 @@ int is_legal_move(Game* game, Move move){
 
     /* Castling checks */
     if(special == Kingside || special == Queenside){
+        uint8_t castling_bit = 0;
+        if(color){
+            castling_bit = (special == Kingside) ? (1 << 2) : (1 << 3);
+        } else {
+            castling_bit = (special == Kingside) ? (1 << 0) : (1 << 1);
+        }
+        
+        if(!(game->castling_rights & castling_bit)){
+            return 0;
+        }
+
         int step = (special == Kingside) ? 1 : -1;
         int mid = src + step;
         int castle_dest = src + (2 * step);
@@ -233,13 +244,6 @@ int parse_algebraic_move(char* input, Game* game) {
         && (game->en_passant != destination)){
         return -1;
     }
-
-    /* Check for pawn capture */
-    if((piece == 'P' || piece == 'p') && strlen(input) == 4 && strchr("abcdefgh", input[0]) && (input[1]=='x')){
-        /* Fallback: interpret lowercase like a bishop capture if pawn move is illegal */
-        piece = color ? 'B' : 'b';
-    }
-
 
     /* Find the source square */
     int src = find_source_square(board, piece, destination, file_hint, rank_hint);

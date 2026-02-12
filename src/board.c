@@ -7,15 +7,6 @@
 
 ZobristKeys zobrist_keys;
 
-static int count_bits(uint64_t bb){
-	int count = 0;
-	while(bb){
-		bb &= bb - 1;
-		count++;
-	}
-	return count;
-}
-
 /* Create and return an empty Board. */
 Board* create_board(){
 	Board* board = (Board*) calloc(1, sizeof(Board));
@@ -212,6 +203,7 @@ int board_validate(Board* board){
 	uint64_t black = board->pieces[Black];
 	uint64_t occupancy = white | black;
 
+	// Piece color bitboards are disjoint
 	if(white & black){
 		return 0;
 	}
@@ -227,18 +219,18 @@ int board_validate(Board* board){
 		return 0;
 	}
 
-	uint64_t overlap = 0;
-	overlap |= board->pieces[Pawn] & (board->pieces[Knight] | board->pieces[Bishop] | board->pieces[Rook] | board->pieces[Queen] | board->pieces[King]);
-	overlap |= board->pieces[Knight] & (board->pieces[Bishop] | board->pieces[Rook] | board->pieces[Queen] | board->pieces[King]);
-	overlap |= board->pieces[Bishop] & (board->pieces[Rook] | board->pieces[Queen] | board->pieces[King]);
-	overlap |= board->pieces[Rook] & (board->pieces[Queen] | board->pieces[King]);
-	overlap |= board->pieces[Queen] & board->pieces[King];
-	if(overlap){
-		return 0;
+	// Piece type bitboards are disjoint
+	for(int i=Pawn; i<=King; i++){
+		for(int j=i+1; j<=King; j++){
+			if(board->pieces[i] & board->pieces[j]){
+				return 0;
+			}
+		}
 	}
 
-	int white_kings = count_bits(board->pieces[King] & white);
-	int black_kings = count_bits(board->pieces[King] & black);
+	// Exactly 1 king per side
+	int white_kings = __builtin_popcountll(board->pieces[King] & white);
+	int black_kings = __builtin_popcountll(board->pieces[King] & black);
 	if(white_kings != 1 || black_kings != 1){
 		return 0;
 	}
