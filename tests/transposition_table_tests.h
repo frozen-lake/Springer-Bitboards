@@ -1,1 +1,1 @@
-void transposition_table_tests();
+int transposition_table_tests();

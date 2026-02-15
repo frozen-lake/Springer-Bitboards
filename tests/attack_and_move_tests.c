@@ -209,7 +209,7 @@ int test_is_legal_move_castling(){
 	return success;
 }
 
-void move_tests(){
+int move_tests(){
 	int num_tests = 4;
 
 	int (*test_cases[num_tests])();
@@ -225,11 +225,11 @@ void move_tests(){
 	test_case_names[2] = "test_find_source_square2";
 	test_case_names[3] = "test_parse_algebraic_move";
 
-    run_tests(test_cases, test_case_names, num_tests);
+    return run_tests(test_cases, test_case_names, num_tests);
 
 }
 
-void attack_tests(){
+int attack_tests(){
 	
 	int num_tests = 9;
 
@@ -256,5 +256,5 @@ void attack_tests(){
 	test_case_names[7] = "test_is_legal_move_en_passant";
 	test_case_names[8] = "test_is_legal_move_castling";
 
-    run_tests(test_cases, test_case_names, num_tests);
+    return run_tests(test_cases, test_case_names, num_tests);
 }

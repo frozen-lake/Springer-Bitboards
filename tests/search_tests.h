@@ -1,1 +1,1 @@
-void search_tests();
+int search_tests();

@@ -200,7 +200,7 @@ int test_generate_legal_moves(){
     return success;
 }
 
-void move_gen_tests(){
+int move_gen_tests(){
     int num_tests = 8;
 
 	int (*test_cases[num_tests])();
@@ -224,5 +224,5 @@ void move_gen_tests(){
 	test_case_names[6] = "test_generate_king_moves";
 	test_case_names[7] = "test_generate_legal_moves";
 
-    run_tests(test_cases, test_case_names, num_tests);
+    return run_tests(test_cases, test_case_names, num_tests);
 }

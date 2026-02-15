@@ -1,2 +1,1 @@
-
-void move_gen_tests();
+int move_gen_tests();

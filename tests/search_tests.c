@@ -18,7 +18,7 @@ int test_evaluation(){
     return success;
 }
 
-void search_tests(){
+int search_tests(){
     int num_tests = 1;
 
 	int (*test_cases[num_tests])();
@@ -29,5 +29,5 @@ void search_tests(){
 
 	test_case_names[0] = "test_evaluation";
 
-    run_tests(test_cases, test_case_names, num_tests);
+    return run_tests(test_cases, test_case_names, num_tests);
 }

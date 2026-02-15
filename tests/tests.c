@@ -147,27 +147,25 @@ int main(){
 	test_case_names[3] = "test_zobrist_hash_after_move";
 	test_case_names[4] = "test_unmake_move_round_trip";
 
-
+	
 	printf("====== GAME TESTS ======\n");
-	run_tests(test_cases, test_case_names, num_tests);
+	int success = run_tests(test_cases, test_case_names, num_tests);
 
 	printf("====== MOVE TESTS ======\n");
-	move_tests();
+	success = success && move_tests();
 
 	printf("====== ATTACK TESTS ======\n");
-	attack_tests();
+	success = success && attack_tests();
 
 	printf("====== MOVE GEN TESTS ======\n");
-	move_gen_tests();
+	success = success && move_gen_tests();
 
 	printf("====== SEARCH TESTS ======\n");
-	search_tests();
+	success = success && search_tests();
 
 	printf("====== TRANSPOSITION TABLE TESTS ======\n");
-	transposition_table_tests();
+	success = success && transposition_table_tests();
 
 	printf("======\n");
-	
-
-	return 0;
+	return success ? 0 : 1;
 }
