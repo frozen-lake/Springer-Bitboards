@@ -3,29 +3,29 @@
 
 
 void generate_knight_moves(MoveList* move_list, Game* game, int color){
-    Board* board = game->board;
+    Board* board = &game->state;
     uint64_t knights = board->pieces[Knight] & board->pieces[color];
     generate_moves(knights, move_list, game, color);
 }
 void generate_bishop_moves(MoveList* move_list, Game* game, int color){
-    Board* board = game->board;
+    Board* board = &game->state;
     uint64_t bishops = board->pieces[Bishop] & board->pieces[color];
     generate_moves(bishops, move_list, game, color);
 }
 void generate_rook_moves(MoveList* move_list, Game* game, int color){
-    Board* board = game->board;
+    Board* board = &game->state;
     uint64_t rooks = board->pieces[Rook] & board->pieces[color];
     generate_moves(rooks, move_list, game, color);
 }
 void generate_queen_moves(MoveList* move_list, Game* game, int color){
-    Board* board = game->board;
+    Board* board = &game->state;
     uint64_t queens = board->pieces[Queen] & board->pieces[color];
     generate_moves(queens, move_list, game, color);
 }
 
 void generate_pawn_moves(MoveList* move_list, Game* game, int color){
     /* Captures */
-    Board* board = game->board;
+    Board* board = &game->state;
     uint64_t pawns = board->pieces[Pawn] & board->pieces[color];
 
     uint64_t occupancy = board->pieces[White] | board->pieces[Black];
@@ -44,38 +44,38 @@ void generate_pawn_moves(MoveList* move_list, Game* game, int color){
 
         /* Captures */
         if((src % 8 > 0) && (U64_MASK(left_capture) & board->pieces[!color])){
-            Move move = encode_move(src, left_capture, game->board);
+            Move move = encode_move(src, left_capture, &game->state);
             move_list_add(move_list, move);
         }
         if((src % 8 < 7) && (U64_MASK(right_capture) & board->pieces[!color])){
-            Move move = encode_move(src, right_capture, game->board);
+            Move move = encode_move(src, right_capture, &game->state);
             move_list_add(move_list, move);
         }
 
         /* Forward moves */
         if(!(U64_MASK(forward) & occupancy)){
-            Move move = encode_move(src, forward, game->board);
+            Move move = encode_move(src, forward, &game->state);
             move_list_add(move_list, move);
 
             /* Double forward */
             if(!(U64_MASK(double_forward) & occupancy)){
-                Move move = encode_move(src, double_forward, game->board);
+                Move move = encode_move(src, double_forward, &game->state);
                 move_list_add(move_list, move);
             }
         }
 
         /* En passant */
-        if(game->en_passant != -1){
-            if((color && ((game->en_passant == src+7) || (game->en_passant == src+9)))
-                || (!color && ((game->en_passant == src-7) || (game->en_passant == src-9)))){
-                    Move move = src | (game->en_passant << 6) | (Pawn << 12) | (Pawn << 15) | (1 << 21);
+        if(game->state.en_passant != -1){
+            if((color && ((game->state.en_passant == src+7) || (game->state.en_passant == src+9)))
+                || (!color && ((game->state.en_passant == src-7) || (game->state.en_passant == src-9)))){
+                    Move move = src | (game->state.en_passant << 6) | (Pawn << 12) | (Pawn << 15) | (1 << 21);
                     move_list_add(move_list, move);
              }
         }
     }
 }
 void generate_king_moves(MoveList* move_list, Game* game, int color){
-    Board* board = game->board;
+    Board* board = &game->state;
     uint64_t king = board->pieces[King] & board->pieces[color];
     generate_moves(king, move_list, game, color);
 
@@ -112,7 +112,7 @@ void generate_all_moves(MoveList* move_list, Game* game, int color){
 
 /* Generate moves from the attack_from bitboard */
 void generate_moves(uint64_t movers, MoveList* move_list, Game* game, int color){
-    Board* board = game->board;
+    Board* board = &game->state;
     while(movers) {
         int src = get_lsb_index(movers);
         movers &= movers - 1;
@@ -126,7 +126,7 @@ void generate_moves(uint64_t movers, MoveList* move_list, Game* game, int color)
                 continue;
             }
 
-            Move move = encode_move(src, dest, game->board);
+            Move move = encode_move(src, dest, &game->state);
             move_list_add(move_list, move);
         }
     }

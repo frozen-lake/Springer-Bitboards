@@ -24,7 +24,7 @@ int test_encode_move(){
 	Game* game = create_game();
 
 	load_fen(game, "4k3/8/8/2Q5/4P1Pp/8/8/3BK3 b - g3 0 1");
-    Move move = encode_move(C5, C1, game->board);
+    Move move = encode_move(C5, C1, &game->state);
     int success = move == (C5 | (C1 << 6) | (Queen << 12));
 
     destroy_game(game);
@@ -35,7 +35,7 @@ int test_encode_move_capture(){
 	Game* game = create_game();
 
 	load_fen(game, "4k3/8/8/2R5/4P1Pp/8/8/2nBK3 b - g3 0 1");
-    Move move = encode_move(C5, C1, game->board);
+    Move move = encode_move(C5, C1, &game->state);
     int success = move == (C5 | (C1 << 6) | (Rook << 12) | (Knight << 15));
 
     destroy_game(game);
@@ -46,8 +46,8 @@ int test_encode_move_init(){
     Game* game = create_game();
     initialize_game(game);
 
-    Move Nf3 = encode_move(G1, F3, game->board);
-    Move e4 = encode_move(E2, E4, game->board);
+    Move Nf3 = encode_move(G1, F3, &game->state);
+    Move e4 = encode_move(E2, E4, &game->state);
 
     int success = Nf3 == (G1 | (F3 << 6) | (Knight << 12));
     success = success && e4 == (E2 | (E4 << 6) | (Pawn << 12));

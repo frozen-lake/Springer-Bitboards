@@ -28,13 +28,13 @@ int is_legal_player_move(Game* game, Move move){
 int is_legal_move(Game* game, Move move){
     if(move == (uint32_t)-1) return 0;
 
-    int color = game->side_to_move;
+    int color = game->state.side_to_move;
     int src = get_move_src(move);
     int dest = get_move_dest(move);
     int piece = get_move_piece(move);
     int capture = get_move_capture(move);
     int special = get_move_special(move);
-    Board* board = game->board;
+    Board* board = &game->state;
 
     /* Castling checks */
     if(special == Kingside || special == Queenside){
@@ -45,7 +45,7 @@ int is_legal_move(Game* game, Move move){
             castling_bit = (special == Kingside) ? (1 << 0) : (1 << 1);
         }
         
-        if(!(game->castling_rights & castling_bit)){
+        if(!(game->state.castling_rights & castling_bit)){
             return 0;
         }
 
@@ -159,15 +159,15 @@ int find_source_square(Board *board, char piece, int destination, char file_hint
 
 /* Convert algebraic notation move to integer encoded source/dest squares */
 int parse_algebraic_move(char* input, Game* game) {
-    Board* board = game->board;
-    int color = game->side_to_move;
+    Board* board = &game->state;
+    int color = game->state.side_to_move;
     char piece = 'P'; // Default to pawn
     char file_hint = '\0';
     int rank_hint = -1;
     char destination_square[3] = {0};
 
     if(input[0] == 'O' || input[0] == 'o'){
-        uint64_t king = board->pieces[King] & game->board->pieces[game->side_to_move];
+        uint64_t king = board->pieces[King] & game->state.pieces[game->state.side_to_move];
         int king_pos = get_lsb_index(king);
         if(strncmp(input, "O-O-O", 5) == 0 || strncmp(input, "o-o-o", 5) == 0){
             return king_pos | ((king_pos-2) << 6) | (King << 12) | (Queenside << 21);
@@ -193,7 +193,7 @@ int parse_algebraic_move(char* input, Game* game) {
 
             if(board->pieces[Pawn] & board->pieces[color] & U64_MASK(src)){
                 Move pawn_move;
-                if(game->en_passant != destination){
+                if(game->state.en_passant != destination){
                     pawn_move = encode_move(src, destination, board);
                 } else {
                     pawn_move = src | (destination << 6) | (Pawn << 12) | (Pawn << 15) | (EnPassant << 21);
@@ -213,7 +213,7 @@ int parse_algebraic_move(char* input, Game* game) {
         i++;
     }
 
-    if(!(game->side_to_move)){ piece = tolower(piece); }
+    if(!(game->state.side_to_move)){ piece = tolower(piece); }
 
     /* Check for disambiguation */
     if(input[1] != 'x'){
@@ -241,7 +241,7 @@ int parse_algebraic_move(char* input, Game* game) {
 
     if(input[1] == 'x'
         && !((board->pieces[White] | board->pieces[Black]) & U64_MASK(destination))
-        && (game->en_passant != destination)){
+        && (game->state.en_passant != destination)){
         return -1;
     }
 

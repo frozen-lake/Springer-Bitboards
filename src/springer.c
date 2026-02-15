@@ -23,7 +23,7 @@ char* get_input(){
 }
 
 Move get_player_move(Game* game){
-    printf("Enter move (%s): ", (game->side_to_move?"White":"Black"));
+    printf("Enter move (%s): ", (game->state.side_to_move?"White":"Black"));
     char* buffer = calloc(INPUT_MAX, sizeof(char));
     if(!buffer){
         return 0;
@@ -79,8 +79,8 @@ int main(){
     char move_buffer[16];
     while(1){
         /* PLAYER TURN */
-        print_board(game->board);
-        printf("Enter move (%s): ", (game->side_to_move?"White":"Black"));
+        print_board(&game->state);
+        printf("Enter move (%s): ", (game->state.side_to_move?"White":"Black"));
 
         memset(move_buffer, 0, 16);
         if(fgets(move_buffer, sizeof(move_buffer), stdin) == NULL){
@@ -95,7 +95,7 @@ int main(){
         Move move = parse_algebraic_move(move_buffer, game);
 
         if(is_legal_player_move(game, move)){
-            printf("\n<--%s PLAYED: %s-->\n", (game->side_to_move?"WHITE":"BLACK"), move_buffer);
+            printf("\n<--%s PLAYED: %s-->\n", (game->state.side_to_move?"WHITE":"BLACK"), move_buffer);
             make_move(game, move); 
         } else {
             printf("\n<--ILLEGAL MOVE: %s-->\n", move_buffer);
@@ -108,7 +108,7 @@ int main(){
         /*
         move = find_move(game);
         if(is_legal_player_move(game, move)){
-            printf("\n<--%s PLAYED: %s-->\n", (game->side_to_move?"WHITE":"BLACK"), move_buffer);
+            printf("\n<--%s PLAYED: %s-->\n", (game->state.side_to_move?"WHITE":"BLACK"), move_buffer);
             make_move(game, move); 
         } else {
             fprintf(stderr, "\nEXCEPTION: ILLEGAL AI MOVE MOVE\n");

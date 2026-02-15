@@ -37,12 +37,22 @@ enum Square {
 };
 
 typedef struct {
-	uint64_t attack_from[64];  /* [square] = bitboard of squares attacking FROM this square */
-	uint64_t attack_to[64];    /* [square] = bitboard of pieces attacking TO this square */
+	uint64_t attack_from[64];
+	uint64_t attack_to[64];
 	uint64_t pieces[8];
 	uint64_t zobrist_hash;
+	int side_to_move;
+	uint8_t castling_rights;
+	int en_passant;
+	int ply;
+	
+	uint8_t castling_history[256];
+	int en_passant_history[256];
+	uint64_t zobrist_history[256];
+} BoardState;
 
-} Board;
+typedef BoardState Board;
+
 
 typedef struct Game Game;
 
@@ -54,9 +64,6 @@ char position_to_piece_char(Board* board, int pos);
 int position_to_piece_number(Board* board, int pos);
 
 int square_attacked(Board* board, int square, int attacker_color);
-
-Board* create_board();
-void destroy_board(Board* board);
 
 void initialize_board(Board* board);
 void empty_board(Board* board);

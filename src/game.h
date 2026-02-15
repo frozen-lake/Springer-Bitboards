@@ -5,27 +5,16 @@
 #ifndef GAME_H
 #define GAME_H
 
-#define DEBUG_ERR 0
+#define DEBUG_ERR 1
 #define DEBUG_PERF 1
 
 typedef struct Game Game;
 
 struct Game {
+	BoardState state;
 	MoveList legal_moves;
 	Move* move_history;
-	uint8_t* castling_rights_history;
-	int* en_passant_history;
-	uint64_t* zobrist_history;
-	Board* board;
-	int side_to_move;
-	int game_length;
 	int move_history_capacity;
-
-	// Legal en passant square for current turn, -1 if none
-	int en_passant;
-
-	// Bit 0 = Black/Kingside, bit 1 = Black/Queenside, bit 2 = White/Kingside, bit 3 = White/Queenside
-	uint8_t castling_rights;
 };
 
 

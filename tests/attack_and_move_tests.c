@@ -7,30 +7,24 @@
 
 
 int test_parse_square(){
-	Board* board = create_board();
 	int f3 = parse_square("f3");
-	
-	destroy_board(board);
 	return f3 == F3;
 }
 
 int test_find_source_square(){
-	Board* board = create_board();
-	initialize_board(board);
+	Board board = {0};
+	initialize_board(&board);
 
-	int Nf3_src = find_source_square(board, 'N', F3, 0, -1);
-	int e4_src = find_source_square(board, 'P', E4, 0, -1);
+	int Nf3_src = find_source_square(&board, 'N', F3, 0, -1);
+	int e4_src = find_source_square(&board, 'P', E4, 0, -1);
 	
-	// printf("Nf3src: %d, e4src: %d\n", Nf3_src, e4_src);
-	
-	destroy_board(board);
 	return Nf3_src == G1 && e4_src == E2;
 }
 
 int test_find_source_square2(){
 	Game* game = create_game();
 	initialize_game(game);
-	Board* board = game->board;
+	Board* board = &game->state;
 
 
 	Move e4 = encode_move(E2, E4, board);
@@ -45,7 +39,7 @@ int test_find_source_square2(){
 int test_parse_algebraic_move(){
 	Game* game = create_game();
 	initialize_game(game);
-	Board* board = game->board;
+	Board* board = &game->state;
 
 	Move Nf3 = parse_algebraic_move("Nf3", game);
 	Move e4 = parse_algebraic_move("e4", game);
@@ -53,7 +47,7 @@ int test_parse_algebraic_move(){
     int success = Nf3 == (G1 | (F3 << 6) | (Knight << 12));
     success = success && e4 == (E2 | (E4 << 6) | (Pawn << 12));
 
-	destroy_board(board);
+	destroy_game(game);
 	return success;
 }
 
@@ -65,18 +59,18 @@ int test_populate_rook_attack(){
 
 	/* Rook on c3 with no blockers */
 	load_fen(game, "4k3/8/8/1n2p3/4P1Pp/2R5/8/3BK3 b - g3 0 1");
-	populate_rook_attack(game->board, C3);
-	success = (game->board->attack_from[C3] == 0b10000000100000001000000010000000100111110110000010000000100ULL);
+	populate_rook_attack(&game->state, C3);
+	success = (game->state.attack_from[C3] == 0b10000000100000001000000010000000100111110110000010000000100ULL);
 	
 	/* Rook on c5 with no blockers */
 	load_fen(game, "4k3/8/8/2R5/4P1Pp/8/8/3BK3 b - g3 0 1");
-	populate_rook_attack(game->board, C5);
-	success = (game->board->attack_from[C5] == 0b10000000100000001001111101100000100000001000000010000000100ULL);
+	populate_rook_attack(&game->state, C5);
+	success = (game->state.attack_from[C5] == 0b10000000100000001001111101100000100000001000000010000000100ULL);
 
 	/* Rook on c3 with enemy blocker on e3 and friendly blocker on c6 */
 	load_fen(game, "5k2/8/2Nr1p2/8/8/2R1b3/8/5K2 w - - 0 1");
-	populate_rook_attack(game->board, C3);
-	success = success && (game->board->attack_from[C3] == 0b1000000010000000100000110110000010000000100);
+	populate_rook_attack(&game->state, C3);
+	success = success && (game->state.attack_from[C3] == 0b1000000010000000100000110110000010000000100);
 
 	destroy_game(game);
 	return success;
@@ -88,12 +82,12 @@ int test_populate_bishop_attack(){
 
 	/* Single bishop on c5 with no blockers */
 	load_fen(game, "4k3/8/8/1nb1p3/4P1Pp/2R5/8/3BK3 b - g3 0 1");
-	populate_bishop_attack(game->board, C5);
-	int success = game->board->attack_from[C5] == 0b10000000010001000010100000000000001010000100010010000001000000ULL;
+	populate_bishop_attack(&game->state, C5);
+	int success = game->state.attack_from[C5] == 0b10000000010001000010100000000000001010000100010010000001000000ULL;
 	/* Single bishop on f4 with a friendly blocker on c7 and an enemy blocker on d2 */
 	load_fen(game, "5k2/2p5/8/8/5b2/8/3N4/5K2 b - - 0 1");
-	populate_bishop_attack(game->board, F4);
-	success = game->board->attack_from[F4] == 0b100100010000101000000000000010100001000100000000000;
+	populate_bishop_attack(&game->state, F4);
+	success = game->state.attack_from[F4] == 0b100100010000101000000000000010100001000100000000000;
 
 	destroy_game(game);
 	return success;
@@ -105,13 +99,13 @@ int test_populate_queen_attack(){
 
 	/* Single queen on c5 with no blockers */
 	load_fen(game, "4k3/8/8/2Q5/4P1Pp/8/8/3BK3 b - g3 0 1");
-	populate_queen_attack(game->board, C5);
-	int success = game->board->attack_from[C5] == 0b10010000010101000011101111101100001110000101010010010001000100ULL;
+	populate_queen_attack(&game->state, C5);
+	int success = game->state.attack_from[C5] == 0b10010000010101000011101111101100001110000101010010010001000100ULL;
 
 	/* Single queen on c5 with a friendly blocker on e3 and an enemy blocker on e7 */
 	load_fen(game, "4k3/4p3/8/2Q5/4P1Pp/4N3/8/3BK3 b - g3 0 1");
-	populate_queen_attack(game->board, C5);
-	success = game->board->attack_from[C5] == 0b10000010101000011101111101100001110000101010000010000000100ULL;
+	populate_queen_attack(&game->state, C5);
+	success = game->state.attack_from[C5] == 0b10000010101000011101111101100001110000101010000010000000100ULL;
 
 	destroy_game(game);
 	return success;
@@ -137,20 +131,20 @@ int test_square_attacked(){
 	Game* game = create_game();
 	load_fen(game, "4k3/4p3/5n2/2Q5/4P1Pp/4N3/8/3BK3 b - g3 0 1");
 
-	int success = square_attacked(game->board, E7, White);
-	success = success && square_attacked(game->board, E7, Black);
+	int success = square_attacked(&game->state, E7, White);
+	success = success && square_attacked(&game->state, E7, Black);
 
-	success = success && square_attacked(game->board, E4, Black);
-	success = success && !square_attacked(game->board, E4, White);
+	success = success && square_attacked(&game->state, E4, Black);
+	success = success && !square_attacked(&game->state, E4, White);
 
-	success = success && !square_attacked(game->board, C5, Black);
-	success = success && !square_attacked(game->board, C5, White);
+	success = success && !square_attacked(&game->state, C5, Black);
+	success = success && !square_attacked(&game->state, C5, White);
 
-	success = success && !square_attacked(game->board, E1, Black);
-	success = success && !square_attacked(game->board, E1, White);
+	success = success && !square_attacked(&game->state, E1, Black);
+	success = success && !square_attacked(&game->state, E1, White);
 	
-	success = success && square_attacked(game->board, G4, Black);
-	success = success && square_attacked(game->board, G4, White);
+	success = success && square_attacked(&game->state, G4, Black);
+	success = success && square_attacked(&game->state, G4, White);
 
 	destroy_game(game);
 	return success;

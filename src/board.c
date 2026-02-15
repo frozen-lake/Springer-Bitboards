@@ -7,16 +7,6 @@
 
 ZobristKeys zobrist_keys;
 
-/* Create and return an empty Board. */
-Board* create_board(){
-	Board* board = (Board*) calloc(1, sizeof(Board));
-	return board;
-}
-
-void destroy_board(Board* board){
-	free(board);
-}
-
 /* Initialize a Board with the starting position. */
 void initialize_board(Board* board){
 	board->pieces[Black] = 0xFFFFULL << 48;
@@ -43,7 +33,7 @@ uint64_t random_u64(void){
 
 void initialize_zobrist(Game* game){
 	srand(1234567);
-	Board* board = game->board;
+	BoardState* state = &game->state;
 
 	for(int color=0; color<2; color++){
 		for(int piece=0; piece<6; piece++){
@@ -63,23 +53,23 @@ void initialize_zobrist(Game* game){
 
 
 	/* */
-	board->zobrist_hash = 0;
+	state->zobrist_hash = 0;
 
-	uint64_t occupied = board->pieces[White] | board->pieces[Black];
+	uint64_t occupied = state->pieces[White] | state->pieces[Black];
 	while(occupied){
 		int src = get_lsb_index(occupied);
         occupied &= occupied - 1;
-		uint8_t color = !!(board->pieces[White] & U64_MASK(src));
-		int piece = position_to_piece_number(board, src);
+		uint8_t color = !!(state->pieces[White] & U64_MASK(src));
+		int piece = position_to_piece_number(state, src);
 		int piece_index = piece - Pawn;
-		board->zobrist_hash ^= zobrist_keys.piece_square[color][piece_index][src];
+		state->zobrist_hash ^= zobrist_keys.piece_square[color][piece_index][src];
 	}
-	board->zobrist_hash ^= zobrist_keys.castling_rights[game->castling_rights];
-	if(game->en_passant != -1) {
-		board->zobrist_hash ^= zobrist_keys.en_passant_file[game->en_passant % 8];
+	state->zobrist_hash ^= zobrist_keys.castling_rights[state->castling_rights];
+	if(state->en_passant != -1) {
+		state->zobrist_hash ^= zobrist_keys.en_passant_file[state->en_passant % 8];
 	}
-	if(!game->side_to_move){
-		board->zobrist_hash ^= zobrist_keys.side_to_move;
+	if(!state->side_to_move){
+		state->zobrist_hash ^= zobrist_keys.side_to_move;
 	}
 
 }
