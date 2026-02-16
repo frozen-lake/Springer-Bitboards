@@ -44,19 +44,11 @@ uint64_t generate_col_occupancy_key(int col, uint64_t occupancy);
 uint64_t generate_ruld_occupancy_key(int col, uint64_t occupancy);
 uint64_t generate_lurd_occupancy_key(int col, uint64_t occupancy);
 
-void populate_row_attack(Board* board, int origin, uint64_t occupancy);
-void populate_col_attack(Board* board, int origin, uint64_t occupancy);
-void populate_ruld_attack(Board* board, int origin, uint64_t occupancy);
-void populate_lurd_attack(Board* board, int origin, uint64_t occupancy);
-
-void populate_pawn_attack(Board* board, int origin, int color);
-void populate_knight_attack(Board* board, int origin);
-void populate_king_attack(Board* board, int origin);
-void populate_bishop_attack(Board* board, int origin);
-void populate_rook_attack(Board* board, int origin);
-void populate_queen_attack(Board* board, int origin);
-
-void populate_attack_maps(Board* board);
-void generate_attacks(Board* board, int pos, int piece_type, int color);
+uint64_t get_rook_attacks(int square, uint64_t occupancy);
+uint64_t get_bishop_attacks(int square, uint64_t occupancy);
+uint64_t get_queen_attacks(int square, uint64_t occupancy);
+uint64_t get_knight_attacks(int square);
+uint64_t get_king_attacks(int square);
+uint64_t get_pawn_attacks(int square, int color);
 
 void initialize_attack_data();

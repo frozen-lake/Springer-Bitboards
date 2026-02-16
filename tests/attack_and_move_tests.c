@@ -59,53 +59,53 @@ int test_populate_rook_attack(){
 
 	/* Rook on c3 with no blockers */
 	load_fen(game, "4k3/8/8/1n2p3/4P1Pp/2R5/8/3BK3 b - g3 0 1");
-	populate_rook_attack(&game->state, C3);
-	success = (game->state.attack_from[C3] == 0b10000000100000001000000010000000100111110110000010000000100ULL);
+    uint64_t occupancy = game->state.pieces[White] | game->state.pieces[Black];
+	success = (get_rook_attacks(C3, occupancy) == 0b10000000100000001000000010000000100111110110000010000000100ULL);
 	
 	/* Rook on c5 with no blockers */
 	load_fen(game, "4k3/8/8/2R5/4P1Pp/8/8/3BK3 b - g3 0 1");
-	populate_rook_attack(&game->state, C5);
-	success = (game->state.attack_from[C5] == 0b10000000100000001001111101100000100000001000000010000000100ULL);
+    occupancy = game->state.pieces[White] | game->state.pieces[Black];
+	success = success && (get_rook_attacks(C5, occupancy) == 0b10000000100000001001111101100000100000001000000010000000100ULL);
 
 	/* Rook on c3 with enemy blocker on e3 and friendly blocker on c6 */
 	load_fen(game, "5k2/8/2Nr1p2/8/8/2R1b3/8/5K2 w - - 0 1");
-	populate_rook_attack(&game->state, C3);
-	success = success && (game->state.attack_from[C3] == 0b1000000010000000100000110110000010000000100);
+    occupancy = game->state.pieces[White] | game->state.pieces[Black];
+	success = success && (get_rook_attacks(C3, occupancy) == 0b1000000010000000100000110110000010000000100ULL);
 
 	destroy_game(game);
 	return success;
 }
 
 int test_populate_bishop_attack(){
-	/* Test single square bishop attack population */
+	/* Test single square bishop attack generation */
 	Game* game = create_game();
 
 	/* Single bishop on c5 with no blockers */
 	load_fen(game, "4k3/8/8/1nb1p3/4P1Pp/2R5/8/3BK3 b - g3 0 1");
-	populate_bishop_attack(&game->state, C5);
-	int success = game->state.attack_from[C5] == 0b10000000010001000010100000000000001010000100010010000001000000ULL;
+    uint64_t occupancy = game->state.pieces[White] | game->state.pieces[Black];
+	int success = get_bishop_attacks(C5, occupancy) == 0b10000000010001000010100000000000001010000100010010000001000000ULL;
 	/* Single bishop on f4 with a friendly blocker on c7 and an enemy blocker on d2 */
 	load_fen(game, "5k2/2p5/8/8/5b2/8/3N4/5K2 b - - 0 1");
-	populate_bishop_attack(&game->state, F4);
-	success = game->state.attack_from[F4] == 0b100100010000101000000000000010100001000100000000000;
+    occupancy = game->state.pieces[White] | game->state.pieces[Black];
+	success = success && (get_bishop_attacks(F4, occupancy) == 0b100100010000101000000000000010100001000100000000000ULL);
 
 	destroy_game(game);
 	return success;
 }
 
 int test_populate_queen_attack(){
-	/* Test single square queen attack population */
+	/* Test single square queen attack generation */
 	Game* game = create_game();
 
 	/* Single queen on c5 with no blockers */
 	load_fen(game, "4k3/8/8/2Q5/4P1Pp/8/8/3BK3 b - g3 0 1");
-	populate_queen_attack(&game->state, C5);
-	int success = game->state.attack_from[C5] == 0b10010000010101000011101111101100001110000101010010010001000100ULL;
+    uint64_t occupancy = game->state.pieces[White] | game->state.pieces[Black];
+	int success = get_queen_attacks(C5, occupancy) == 0b10010000010101000011101111101100001110000101010010010001000100ULL;
 
 	/* Single queen on c5 with a friendly blocker on e3 and an enemy blocker on e7 */
 	load_fen(game, "4k3/4p3/8/2Q5/4P1Pp/4N3/8/3BK3 b - g3 0 1");
-	populate_queen_attack(&game->state, C5);
-	success = game->state.attack_from[C5] == 0b10000010101000011101111101100001110000101010000010000000100ULL;
+    occupancy = game->state.pieces[White] | game->state.pieces[Black];
+	success = success && (get_queen_attacks(C5, occupancy) == 0b10000010101000011101111101100001110000101010000010000000100ULL);
 
 	destroy_game(game);
 	return success;
@@ -203,21 +203,37 @@ int test_is_legal_move_castling(){
 	return success;
 }
 
-int move_tests(){
-	int num_tests = 4;
+int test_d3_illegal_repro(){
+	Game* game = create_game();
+	// Position after 1. e4 e5
+	load_fen(game, "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2");
 
-	int (*test_cases[num_tests])();
-	char* test_case_names[num_tests];
+	// White plays d3 (D2 -> D3)
+    // D2=11, D3=19, Pawn=2
+	Move d3 = 11 | (19 << 6) | (2 << 12);
+	int legal = is_legal_move(game, d3);
+
+	destroy_game(game);
+	return legal;
+}
+
+int move_tests(){
+	int num_tests = 5;
+
+	int (*test_cases[5])();
+	char* test_case_names[5];
 
 	test_cases[0] = test_parse_square;
 	test_cases[1] = test_find_source_square;
 	test_cases[2] = test_find_source_square2;
 	test_cases[3] = test_parse_algebraic_move;
+	test_cases[4] = test_d3_illegal_repro;
 
 	test_case_names[0] = "test_parse_square";
 	test_case_names[1] = "test_find_source_square";
 	test_case_names[2] = "test_find_source_square2";
 	test_case_names[3] = "test_parse_algebraic_move";
+	test_case_names[4] = "test_d3_illegal_repro";
 
     return run_tests(test_cases, test_case_names, num_tests);
 

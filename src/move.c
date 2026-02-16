@@ -29,99 +29,41 @@ int is_legal_move(Game* game, Move move){
     if(move == (uint32_t)-1) return 0;
 
     int color = game->state.side_to_move;
-    int src = get_move_src(move);
-    int dest = get_move_dest(move);
-    int piece = get_move_piece(move);
-    int capture = get_move_capture(move);
     int special = get_move_special(move);
-    Board* board = &game->state;
+    BoardState* state = &game->state;
 
-    /* Castling checks */
+    /* Castling checks (pre-move) */
     if(special == Kingside || special == Queenside){
-        uint8_t castling_bit = 0;
-        if(color){
-            castling_bit = (special == Kingside) ? (1 << 2) : (1 << 3);
-        } else {
-            castling_bit = (special == Kingside) ? (1 << 0) : (1 << 1);
-        }
+        uint8_t castling_bit = (color == White) ? 
+            ((special == Kingside) ? (1 << 2) : (1 << 3)) : 
+            ((special == Kingside) ? (1 << 0) : (1 << 1));
         
-        if(!(game->state.castling_rights & castling_bit)){
-            return 0;
-        }
+        if(!(state->castling_rights & castling_bit)) return 0;
 
+        int src = get_move_src(move);
         int step = (special == Kingside) ? 1 : -1;
-        int mid = src + step;
-        int castle_dest = src + (2 * step);
-        int rook_src = (special == Kingside) ? src + 3 : src - 4;
+        
+        // Cannot castle out of, through, or into check
+        if(square_attacked(state, src, !color)) return 0;
+        if(square_attacked(state, src + step, !color)) return 0;
+        if(square_attacked(state, src + 2 * step, !color)) return 0;
 
-        if(square_attacked(board, src, !color)){
-            return 0;
-        }
-        if(square_attacked(board, mid, !color) || square_attacked(board, castle_dest, !color)){
-            return 0;
-        }
-
-        if(!(board->pieces[Rook] & board->pieces[color] & U64_MASK(rook_src))){
-            return 0;
-        }
-
-        if(board->pieces[White] & board->pieces[Black]){
-            return 0;
-        }
-
-        if(board->pieces[White] & (U64_MASK(mid) | U64_MASK(castle_dest))){
-            return 0;
-        }
-        if(board->pieces[Black] & (U64_MASK(mid) | U64_MASK(castle_dest))){
-            return 0;
-        }
-
-        if(special == Queenside){
-            int extra = src - 3;
-            if((board->pieces[White] | board->pieces[Black]) & U64_MASK(extra)){
-                return 0;
-            }
-        }
+        // Path must be clear
+        uint64_t path_mask = U64_MASK(src + step) | U64_MASK(src + 2 * step);
+        if(special == Queenside) path_mask |= U64_MASK(src - 3);
+        if((state->pieces[White] | state->pieces[Black]) & path_mask) return 0;
     }
 
-    /* Make move:
-     * Update piece bitboards
-     */
-    board->pieces[color] -= U64_MASK(src);
-    board->pieces[piece] -= U64_MASK(src);
-    int capture_square = dest;
-    if(capture && special == EnPassant){
-        capture_square = color ? dest - 8 : dest + 8;
-    }
-    if(capture){
-        board->pieces[!color] -= U64_MASK(capture_square);
-        board->pieces[capture] -= U64_MASK(capture_square);
-    } 
-    board->pieces[color] += U64_MASK(dest);
-    board->pieces[piece] += U64_MASK(dest);
-
-    int king_location = get_lsb_index(board->pieces[King] & board->pieces[color]);
-
-    int is_legal = !square_attacked(board, king_location, !color);
-    if(((special == Kingside) && square_attacked(board, king_location-1, !color))
-        || ((special == Queenside) && square_attacked(board, king_location+1, !color))){
-            is_legal = 0;
-    }
-
-    /* Undo move:
-     * Undo piece bitboard updates
-     */
-    board->pieces[piece] -= U64_MASK(dest);
-    board->pieces[color] -= U64_MASK(dest);
-    if(capture){
-        board->pieces[capture] += U64_MASK(capture_square);
-        board->pieces[!color] += U64_MASK(capture_square);
-    }
-    board->pieces[piece] += U64_MASK(src);
-    board->pieces[color] += U64_MASK(src);
-
+    // Trial make move
+    make_move_on_state(state, move);
     
-    return is_legal;
+    // Check if king is in check (from the perspective of the side that just moved)
+    // side_to_move was flipped, so !state->side_to_move is the mover
+    int in_check = square_attacked(state, state->king_sq[!state->side_to_move], state->side_to_move);
+    
+    unmake_move_on_state(state, move);
+
+    return !in_check;
 }
 
 /* Convert algebraic notation to numeric square index: "e4" --> 28 */
@@ -137,24 +79,63 @@ int parse_square(char *square) {
 /* Find the source square given the piece type and destination square */
 int find_source_square(Board *board, char piece, int destination, char file_hint, int rank_hint) {
     uint64_t occupancy = board->pieces[White] | board->pieces[Black];
-    for (int i=0; i<64; i++) {
-        if (position_to_piece_char(board, i) == piece) { 
-            if(piece == 'P'){
-                if(((i+8 == destination) || ((i+16 == destination) && i/8 == 1)) && !(occupancy & U64_MASK(destination))){ return i; }
-            } else if(piece == 'p'){
-                if(((i-8 == destination) || ((i-16 == destination) && i/8 == 6)) && !(occupancy & U64_MASK(destination))){ return i; }
-            } else if(board->attack_from[i] & U64_MASK(destination)) {
-                if (file_hint && (i%8) != (file_hint-'a')) {
-                    continue;
+    int color = isupper(piece) ? White : Black;
+    char p = toupper(piece);
+    uint64_t potential_attackers = 0;
+
+    switch(p) {
+        case 'P': {
+            // For pawns, file_hint indicates a diagonal capture (e.g., "exd5")
+            // No file_hint means a forward move (e.g., "e4")
+            if (file_hint) {
+                // Capture move - only consider diagonal attacks from the specified file
+                if (color == White) {
+                    potential_attackers |= (get_pawn_attacks(destination, Black) & board->pieces[Pawn] & board->pieces[White]);
+                } else {
+                    potential_attackers |= (get_pawn_attacks(destination, White) & board->pieces[Pawn] & board->pieces[Black]);
                 }
-		        if (rank_hint >= 0 && (i/8) != rank_hint) {
-                    continue;
+            } else {
+                // Non-capture move - only consider forward moves
+                if (color == White) {
+                    if (destination >= 8) {
+                        uint64_t single = U64_MASK(destination - 8);
+                        if (single & board->pieces[Pawn] & board->pieces[White]) potential_attackers |= single;
+                        if (destination >= 16 && (destination / 8 == 3) && !(occupancy & U64_MASK(destination - 8))) {
+                            uint64_t double_push = U64_MASK(destination - 16);
+                            if (double_push & board->pieces[Pawn] & board->pieces[White]) potential_attackers |= double_push;
+                        }
+                    }
+                } else {
+                    if (destination <= 55) {
+                        uint64_t single = U64_MASK(destination + 8);
+                        if (single & board->pieces[Pawn] & board->pieces[Black]) potential_attackers |= single;
+                        if (destination <= 47 && (destination / 8 == 4) && !(occupancy & U64_MASK(destination + 8))) {
+                            uint64_t double_push = U64_MASK(destination + 16);
+                            if (double_push & board->pieces[Pawn] & board->pieces[Black]) potential_attackers |= double_push;
+                        }
+                    }
                 }
-                return i; // Valid source square
             }
+            break;
         }
+        case 'N': potential_attackers = get_knight_attacks(destination) & board->pieces[Knight] & board->pieces[color]; break;
+        case 'B': potential_attackers = get_bishop_attacks(destination, occupancy) & board->pieces[Bishop] & board->pieces[color]; break;
+        case 'R': potential_attackers = get_rook_attacks(destination, occupancy) & board->pieces[Rook] & board->pieces[color]; break;
+        case 'Q': potential_attackers = get_queen_attacks(destination, occupancy) & board->pieces[Queen] & board->pieces[color]; break;
+        case 'K': potential_attackers = get_king_attacks(destination) & board->pieces[King] & board->pieces[color]; break;
     }
-    return -1; // No valid source found
+
+    while(potential_attackers) {
+        int src = get_lsb_index(potential_attackers);
+        potential_attackers &= potential_attackers - 1;
+
+        if (file_hint && (src % 8) != (file_hint - 'a')) continue;
+        if (rank_hint >= 0 && (src / 8) != rank_hint) continue;
+
+        return src;
+    }
+
+    return -1;
 }
 
 /* Convert algebraic notation move to integer encoded source/dest squares */
@@ -227,6 +208,9 @@ int parse_algebraic_move(char* input, Game* game) {
             strncpy(destination_square, &input[i + 1], 2);
         }
     } else {
+        if (piece == 'P' || piece == 'p') {
+            file_hint = input[0];
+        }
         strncpy(destination_square, &input[2], 2); // capture dest
     }
 
@@ -239,7 +223,7 @@ int parse_algebraic_move(char* input, Game* game) {
         return -1;
     }
 
-    if(input[1] == 'x'
+    if((input[1] == 'x' || input[2] == 'x')
         && !((board->pieces[White] | board->pieces[Black]) & U64_MASK(destination))
         && (game->state.en_passant != destination)){
         return -1;

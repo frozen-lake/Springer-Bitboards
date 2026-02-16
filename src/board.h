@@ -37,13 +37,12 @@ enum Square {
 };
 
 typedef struct {
-	uint64_t attack_from[64];
-	uint64_t attack_to[64];
 	uint64_t pieces[8];
 	uint64_t zobrist_hash;
 	int side_to_move;
 	uint8_t castling_rights;
 	int en_passant;
+	int king_sq[2];
 	int ply;
 	
 	uint8_t castling_history[256];

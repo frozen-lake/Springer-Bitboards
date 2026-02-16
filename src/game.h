@@ -27,7 +27,10 @@ void initialize_game(Game* game);
 int load_fen(Game* game, char* str);
 
 void make_move(Game* game, Move move);
-void unmake_move(Game* game, Move move, uint8_t depth);
+void unmake_move(Game* game, Move move);
+
+void make_move_on_state(BoardState* state, Move move);
+void unmake_move_on_state(BoardState* state, Move move);
 
 
 /* Utilities */

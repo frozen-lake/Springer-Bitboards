@@ -49,7 +49,7 @@ int load_fen(Game* game, char* str){
 	empty_board(board);
 
 	// Split up FEN by spaces
-	char fen[70];
+	char fen[128];
 	if(str == NULL){
 		return 0;
 	}
@@ -58,14 +58,11 @@ int load_fen(Game* game, char* str){
 	}
 	char* delim = " ";
 
-	char* fen_field[6]; // pieces, turn, optional castling rights, en passant,  
+	char* fen_field[6] = {NULL};
 	fen_field[0] = strtok(fen, delim);
-	int fields = 0;
-	// printf("field[0]: %s\n", fen_field[0]);
-	for(int i=1; i<6 && fen_field[i-1]!=NULL;i++){
+	
+	for(int i=1; i<6 && fen_field[i-1]!=NULL; i++){
 		fen_field[i] = strtok(NULL, delim);
-		fields++;
-		// printf("field[%d]: %s\n", i, fen_field[i]);
 	}
 
 	if(fen_field[1]){
@@ -74,20 +71,15 @@ int load_fen(Game* game, char* str){
 	
 	// Split field 0 into ranks by '/' 
 	if(fen_field[0] == NULL){ return 0; }
-	if(snprintf(fen, sizeof(fen), "%s", fen_field[0]) >= (int)sizeof(fen)){
-		return 0;
-	}
+	
 	char* ranks[8];
 	delim = "/";
 	ranks[0] = strtok(fen, delim);
-        if(ranks[0] == NULL){ return 0; }	
+    if(ranks[0] == NULL){ return 0; }	
 	for(int i=1;i<8;i++){
 		ranks[i] = strtok(NULL, delim);
 		if(ranks[i] == NULL){ return 0; };
-	}
-	
-	// printf("fen: %s\nfen_field[0]: %s\nranks[7]: %s\n", fen, fen_field[0], ranks[7]);
-		
+	}		
 	
 	// Process ranks
 	for(int rank=7;rank>=0;rank--){
@@ -124,6 +116,7 @@ int load_fen(Game* game, char* str){
 						break;
 					case 'K':
 						board->pieces[King] |= piece;
+						board->king_sq[isupper(c) ? White : Black] = (rank*8 + file);
 						break;
 					default:
 						return 0;
@@ -170,7 +163,6 @@ int load_fen(Game* game, char* str){
 
 	game->state.ply = 0;
 
-	populate_attack_maps(board);
 	initialize_zobrist(game);
 
 	generate_legal_moves(game, game->state.side_to_move);
@@ -180,21 +172,30 @@ int load_fen(Game* game, char* str){
 
 
 void make_move(Game* game, Move move){
-	/* Assume move is legal */
-	Board* board = &game->state;
-	int color = game->state.side_to_move;
+	make_move_on_state(&game->state, move);
+	move_list_init(&game->legal_moves);
+	generate_legal_moves(game, game->state.side_to_move);
+}
 
+void unmake_move(Game* game, Move move){
+	unmake_move_on_state(&game->state, move);
+	move_list_init(&game->legal_moves);
+	generate_legal_moves(game, game->state.side_to_move);
+}
+
+void make_move_on_state(BoardState* state, Move move){
+	int color = state->side_to_move;
 	int dest = get_move_dest(move);
 	int src = get_move_src(move);
 	int piece_type = get_move_piece(move);
 	int capture = get_move_capture(move);
 	int special = get_move_special(move);
 
-	game->state.castling_history[game->state.ply] = game->state.castling_rights;
-	game->state.en_passant_history[game->state.ply] = game->state.en_passant;
-	game->state.zobrist_history[game->state.ply] = board->zobrist_hash;
-	uint8_t old_castling = game->state.castling_rights;
-	int old_en_passant = game->state.en_passant;
+	state->castling_history[state->ply] = state->castling_rights;
+	state->en_passant_history[state->ply] = state->en_passant;
+	state->zobrist_history[state->ply] = state->zobrist_hash;
+	uint8_t old_castling = state->castling_rights;
+	int old_en_passant = state->en_passant;
 	
 	int capture_square = dest;
 	if(capture && special == EnPassant){
@@ -202,285 +203,154 @@ void make_move(Game* game, Move move){
 	}
 
 	int piece_index = piece_type - Pawn;
-	board->zobrist_hash ^= zobrist_keys.piece_square[color][piece_index][src];
-	board->zobrist_hash ^= zobrist_keys.piece_square[color][piece_index][dest];
+	state->zobrist_hash ^= zobrist_keys.piece_square[color][piece_index][src];
+	state->zobrist_hash ^= zobrist_keys.piece_square[color][piece_index][dest];
 	if(capture){
 		int capture_index = capture - Pawn;
-		board->zobrist_hash ^= zobrist_keys.piece_square[!color][capture_index][capture_square];
+		state->zobrist_hash ^= zobrist_keys.piece_square[!color][capture_index][capture_square];
 	}
 	if(special > EnPassant){
 		int rook_src = (special == Kingside) ? src + 3 : src - 4;
 		int rook_dest = (special == Kingside) ? src + 1 : src - 1;
 		int rook_index = Rook - Pawn;
-		board->zobrist_hash ^= zobrist_keys.piece_square[color][rook_index][rook_src];
-		board->zobrist_hash ^= zobrist_keys.piece_square[color][rook_index][rook_dest];
-	}
-
-	/* Update piece bitboards */
-	board->pieces[piece_type] -= U64_MASK(src);
-	board->pieces[piece_type] += U64_MASK(dest);
-
-	/* Update color bitboards */
-	if(color){
-		board->pieces[White] += U64_MASK(dest);
-		board->pieces[White] -= U64_MASK(src);
-		board->pieces[Black] &= (-1 - U64_MASK(dest));
-	} else {
-		board->pieces[Black] += U64_MASK(dest);
-		board->pieces[Black] -= U64_MASK(src);
-		board->pieces[White] &= (-1 - U64_MASK(dest));
+		state->zobrist_hash ^= zobrist_keys.piece_square[color][rook_index][rook_src];
+		state->zobrist_hash ^= zobrist_keys.piece_square[color][rook_index][rook_dest];
 	}
 
 	if(capture != 0){
-		if(!special){
-			board->pieces[capture] -= U64_MASK(dest);
-			if(capture == Rook){ // Castling rights
-				switch(dest){
-					case A1:
-						game->state.castling_rights &= 0b0111;
-						break;
-					case H1:
-						game->state.castling_rights &= 0b1011; 
-						break;
-					case A8:
-						game->state.castling_rights &= 0b1101;
-						break;
-					case H8:
-						game->state.castling_rights &= 0b1110;
-						break;
-				}
+		state->pieces[capture] &= ~U64_MASK(capture_square);
+		state->pieces[!color] &= ~U64_MASK(capture_square);
+
+		if(!special && capture == Rook){
+			switch(dest){
+				case A1:
+					state->castling_rights &= 0b0111;
+					break;
+				case H1:
+					state->castling_rights &= 0b1011;
+					break;
+				case A8:
+					state->castling_rights &= 0b1101;
+					break;
+				case H8:
+					state->castling_rights &= 0b1110;
+					break;
 			}
-			board->attack_from[src] = 0;
-			board->attack_from[dest] = 0;
-			generate_attacks(board, dest, piece_type, color);
-		} else if(special == EnPassant){
-			board->pieces[capture] -= U64_MASK(capture_square);
-			board->pieces[!color] -= U64_MASK(capture_square);
-			board->attack_from[src] = 0;
-			board->attack_from[capture_square] = 0;
-			generate_attacks(board, dest, piece_type, color);
 		}
-	} else if(special > EnPassant){
+	}
+
+	state->pieces[piece_type] &= ~U64_MASK(src);
+	state->pieces[piece_type] |= U64_MASK(dest);
+
+	if(color){
+		state->pieces[White] &= ~U64_MASK(src);
+		state->pieces[White] |= U64_MASK(dest);
+	} else {
+		state->pieces[Black] &= ~U64_MASK(src);
+		state->pieces[Black] |= U64_MASK(dest);
+	}
+
+	if(special > EnPassant){
 		int rook_src = (special == Kingside) ? src + 3 : src - 4;
 		int rook_dest = (special == Kingside) ? src + 1 : src - 1;
 		
-		board->pieces[color] -= U64_MASK(rook_src);
-		board->pieces[color] += U64_MASK(rook_dest);
-		board->pieces[Rook] -= U64_MASK(rook_src);
-		board->pieces[Rook] += U64_MASK(rook_dest);
-
-		board->attack_from[rook_src] = 0;
-		board->attack_from[rook_dest] = 0;
-		generate_attacks(board, rook_dest, Rook, color);
-	} else {
-		board->attack_from[src] = 0;
-		board->attack_from[dest] = 0;
-		generate_attacks(board, dest, piece_type, color);
+		state->pieces[color] &= ~U64_MASK(rook_src);
+		state->pieces[color] |= U64_MASK(rook_dest);
+		state->pieces[Rook] &= ~U64_MASK(rook_src);
+		state->pieces[Rook] |= U64_MASK(rook_dest);
 	}
 
-
-	uint64_t occupancy = board->pieces[White] | board->pieces[Black];
-
-	/* Incremental update rays at src and dest */
-
-	uint64_t update_cols = (attack_data.col[COL_INDEX(src)] | attack_data.col[COL_INDEX(dest)]) & (board->pieces[Rook] | board->pieces[Queen]);
-	uint64_t update_rows = (attack_data.row[ROW_INDEX(src)] | attack_data.row[ROW_INDEX(dest)]) & (board->pieces[Rook] | board->pieces[Queen]);
-
-	while(update_cols){
-		int update_src = get_lsb_index(update_cols);
-		update_cols &= update_cols - 1;
-		populate_col_attack(board, update_src, occupancy);
-	}
-	while(update_rows){
-		int update_src = get_lsb_index(update_rows);
-		update_rows &= update_rows - 1;
-		populate_row_attack(board, update_src, occupancy);
-	}
-
-
-	uint64_t update_ruld = (attack_data.ruld[RULD_INDEX(src)] | attack_data.ruld[RULD_INDEX(dest)]) & (board->pieces[Bishop] | board->pieces[Queen]);
-	uint64_t update_lurd = (attack_data.lurd[LURD_INDEX(src)] | attack_data.lurd[LURD_INDEX(dest)]) & (board->pieces[Bishop] | board->pieces[Queen]);
-
-	while(update_ruld){
-		int update_src = get_lsb_index(update_ruld);
-		update_ruld &= update_ruld - 1;
-		populate_ruld_attack(board, update_src, occupancy);
-	}
-	while(update_lurd){
-		int update_src = get_lsb_index(update_lurd);
-		update_lurd &= update_lurd - 1;
-		populate_lurd_attack(board, update_src, occupancy);
-	}
-
-	/* Track next en passant */
-	game->state.en_passant = -1;
+	state->en_passant = -1;
 	if(piece_type == Pawn){
 		if(color && (dest == src+16)){
-			game->state.en_passant = src+8;
+			state->en_passant = src+8;
 		} else if(!color && (dest == src-16)){
-			game->state.en_passant = src-8;
+			state->en_passant = src-8;
 		}
 	}
 
-	/* Update move_history */
-	game->move_history[game->state.ply] = move;
-	game->state.ply += 1;
-
-	/* Castling rights */
 	if(piece_type == King){
-		if(src == E1) game->state.castling_rights &= 0b0011;
-		if(src == E8) game->state.castling_rights &= 0b1100;
+		state->king_sq[color] = dest;
+		if(src == E1) state->castling_rights &= 0b0011;
+		if(src == E8) state->castling_rights &= 0b1100;
 	} else if(piece_type == Rook){
-		if(src == A1) game->state.castling_rights &= 0b0111;
-		if(src == H1) game->state.castling_rights &= 0b1011;
-		if(src == A8) game->state.castling_rights &= 0b1101;
-		if(src == H8) game->state.castling_rights &= 0b1110;
+		if(src == A1) state->castling_rights &= 0b0111;
+		if(src == H1) state->castling_rights &= 0b1011;
+		if(src == A8) state->castling_rights &= 0b1101;
+		if(src == H8) state->castling_rights &= 0b1110;
 	}
 
-	board->zobrist_hash ^= zobrist_keys.castling_rights[old_castling];
-	board->zobrist_hash ^= zobrist_keys.castling_rights[game->state.castling_rights];
+	state->zobrist_hash ^= zobrist_keys.castling_rights[old_castling];
+	state->zobrist_hash ^= zobrist_keys.castling_rights[state->castling_rights];
 	if(old_en_passant != -1){
-		board->zobrist_hash ^= zobrist_keys.en_passant_file[old_en_passant % 8];
+		state->zobrist_hash ^= zobrist_keys.en_passant_file[old_en_passant % 8];
 	}
-	if(game->state.en_passant != -1){
-		board->zobrist_hash ^= zobrist_keys.en_passant_file[game->state.en_passant % 8];
+	if(state->en_passant != -1){
+		state->zobrist_hash ^= zobrist_keys.en_passant_file[state->en_passant % 8];
 	}
-	board->zobrist_hash ^= zobrist_keys.side_to_move;
+	state->zobrist_hash ^= zobrist_keys.side_to_move;
 
-	game->state.side_to_move = !(game->state.side_to_move);
-
-	move_list_init(&game->legal_moves);
-	generate_legal_moves(game, game->state.side_to_move);
-	if(DEBUG_ERR && !board_validate(board)){
-		fprintf(stderr, "board_validate failed after make_move\n");
-	}
-
+	state->side_to_move = !state->side_to_move;
+	state->ply += 1;
 }
 
-void unmake_move(Game* game, Move move, uint8_t depth){
-	(void)depth;
-	if(game->state.ply <= 0){
+void unmake_move_on_state(BoardState* state, Move move){
+	if(state->ply <= 0){
 		return;
 	}
 
-	Board* board = &game->state;
-	int index = game->state.ply - 1;
-	int color = !game->state.side_to_move;
-
+	int index = state->ply - 1;
 	int dest = get_move_dest(move);
 	int src = get_move_src(move);
 	int piece_type = get_move_piece(move);
 	int capture = get_move_capture(move);
 	int special = get_move_special(move);
 
+	state->ply -= 1;
+	state->side_to_move = !state->side_to_move;
+	int color = state->side_to_move;
+
 	int capture_square = dest;
 	if(capture && special == EnPassant){
 		capture_square = color ? dest - 8 : dest + 8;
 	}
 
-	game->state.side_to_move = color;
-	game->state.castling_rights = game->state.castling_history[index];
-	game->state.en_passant = game->state.en_passant_history[index];
-	board->zobrist_hash = game->state.zobrist_history[index];
+	state->castling_rights = state->castling_history[index];
+	state->en_passant = state->en_passant_history[index];
+	state->zobrist_hash = state->zobrist_history[index];
 
-	/* Restore moved piece */
-	board->pieces[piece_type] -= U64_MASK(dest);
-	board->pieces[piece_type] += U64_MASK(src);
+	state->pieces[piece_type] &= ~U64_MASK(dest);
+	state->pieces[piece_type] |= U64_MASK(src);
 
-	/* Restore color for moved piece */
 	if(color){
-		board->pieces[White] -= U64_MASK(dest);
-		board->pieces[White] += U64_MASK(src);
+		state->pieces[White] &= ~U64_MASK(dest);
+		state->pieces[White] |= U64_MASK(src);
 	} else {
-		board->pieces[Black] -= U64_MASK(dest);
-		board->pieces[Black] += U64_MASK(src);
+		state->pieces[Black] &= ~U64_MASK(dest);
+		state->pieces[Black] |= U64_MASK(src);
 	}
 
-	/* Restore castling rook if applicable */
 	if(special > EnPassant){
 		int rook_src = (special == Kingside) ? src + 3 : src - 4;
 		int rook_dest = (special == Kingside) ? src + 1 : src - 1;
-		board->pieces[Rook] -= U64_MASK(rook_dest);
-		board->pieces[Rook] += U64_MASK(rook_src);
-		board->pieces[color] -= U64_MASK(rook_dest);
-		board->pieces[color] += U64_MASK(rook_src);
+		state->pieces[Rook] &= ~U64_MASK(rook_dest);
+		state->pieces[Rook] |= U64_MASK(rook_src);
+		state->pieces[color] &= ~U64_MASK(rook_dest);
+		state->pieces[color] |= U64_MASK(rook_src);
 	}
 
-	/* Restore captured piece if applicable */
+	if(piece_type == King){
+		state->king_sq[color] = src;
+	}
+
 	if(capture){
-		board->pieces[capture] += U64_MASK(capture_square);
+		state->pieces[capture] |= U64_MASK(capture_square);
 		if(color){
-			board->pieces[Black] += U64_MASK(capture_square);
+			state->pieces[Black] |= U64_MASK(capture_square);
 		} else {
-			board->pieces[White] += U64_MASK(capture_square);
+			state->pieces[White] |= U64_MASK(capture_square);
 		}
 	}
-
-	uint64_t occupancy = board->pieces[White] | board->pieces[Black];
-
-	board->attack_from[dest] = 0;
-	board->attack_from[src] = 0;
-	
-	if(capture){
-		board->attack_from[capture_square] = 0;
-	}
-
-	/* Regenerate attacks for all restored pieces */
-	generate_attacks(board, src, piece_type, color);
-	
-	if(capture){
-		int captured_color = !color;
-		generate_attacks(board, capture_square, capture, captured_color);
-	}
-	
-	if(special > EnPassant){
-		int rook_src = (special == Kingside) ? src + 3 : src - 4;
-		int rook_dest = (special == Kingside) ? src + 1 : src - 1;
-		board->attack_from[rook_dest] = 0;
-		board->attack_from[rook_src] = 0;
-		generate_attacks(board, rook_src, Rook, color);
-	}
-
-	/* Update all sliding pieces on affected rays/diagonals */
-	uint64_t update_cols = (attack_data.col[COL_INDEX(src)] | attack_data.col[COL_INDEX(dest)]) 
-	                       & (board->pieces[Rook] | board->pieces[Queen]);
-	uint64_t update_rows = (attack_data.row[ROW_INDEX(src)] | attack_data.row[ROW_INDEX(dest)]) 
-	                       & (board->pieces[Rook] | board->pieces[Queen]);
-
-	while(update_cols){
-		int update_src = get_lsb_index(update_cols);
-		update_cols &= update_cols - 1;
-		populate_col_attack(board, update_src, occupancy);
-	}
-	while(update_rows){
-		int update_src = get_lsb_index(update_rows);
-		update_rows &= update_rows - 1;
-		populate_row_attack(board, update_src, occupancy);
-	}
-
-	uint64_t update_ruld = (attack_data.ruld[RULD_INDEX(src)] | attack_data.ruld[RULD_INDEX(dest)]) 
-	                       & (board->pieces[Bishop] | board->pieces[Queen]);
-	uint64_t update_lurd = (attack_data.lurd[LURD_INDEX(src)] | attack_data.lurd[LURD_INDEX(dest)]) 
-	                       & (board->pieces[Bishop] | board->pieces[Queen]);
-
-	while(update_ruld){
-		int update_src = get_lsb_index(update_ruld);
-		update_ruld &= update_ruld - 1;
-		populate_ruld_attack(board, update_src, occupancy);
-	}
-	while(update_lurd){
-		int update_src = get_lsb_index(update_lurd);
-		update_lurd &= update_lurd - 1;
-		populate_lurd_attack(board, update_src, occupancy);
-	}
-
-	move_list_init(&game->legal_moves);
-	generate_legal_moves(game, game->state.side_to_move);
-	if(DEBUG_ERR && !board_validate(board)){
-		fprintf(stderr, "board_validate failed after unmake_move\n");
-	}
-
-	game->state.ply -= 1;
 }
 
 uint64_t swap_uint64(uint64_t num){

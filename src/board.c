@@ -19,7 +19,8 @@ void initialize_board(Board* board){
 	board->pieces[Queen] = 8ULL + (8ULL << 56);
 	board->pieces[King] = 16ULL + (16ULL << 56);
 
-	populate_attack_maps(board);
+	board->king_sq[White] = E1;
+	board->king_sq[Black] = E8;
 }
 
 uint64_t random_u64(void){
@@ -90,10 +91,6 @@ void print_board(Board* board){
 /* Removes all pieces from the Board and clears the attack bitboards. */
 void empty_board(Board* board){
 	board->pieces[Black] = board->pieces[White] = board->pieces[Pawn] = board->pieces[Knight] = board->pieces[Bishop] = board->pieces[Rook] = board->pieces[Queen] = board->pieces[King] = 0;
-	for(int i=0;i<64;i++){
-		board->attack_from[i] = 0;
-		board->attack_to[i] = 0;
-	}
 }
 
 /* Prints the passed bitboard in an 8x8 format. */
@@ -134,39 +131,23 @@ int position_to_piece_number(Board* board, int pos){
 }
 
 int square_attacked(Board* board, int square, int attacker_color){
-    uint64_t candidates = board->pieces[attacker_color];
+    uint64_t attackers = board->pieces[attacker_color];
     uint64_t occupancy = board->pieces[White] | board->pieces[Black];
-    int col = square % 8;
-    int row = square / 8;
 
-    uint64_t pawns = board->pieces[Pawn] & candidates;
-    if (attacker_color && (attack_data.pawn_black[square] & pawns)) return 1;
-    if (!attacker_color && (attack_data.pawn_white[square] & pawns)) return 1;
+    /* Check pawns */
+    if (get_pawn_attacks(square, !attacker_color) & (attackers & board->pieces[Pawn])) return 1;
 
-    if((board->pieces[Knight] & candidates) & attack_data.knight[square]) return 1;
-    if((board->pieces[King] & candidates) & attack_data.king[square]) return 1;
+    /* Check knights */
+    if (get_knight_attacks(square) & (attackers & board->pieces[Knight])) return 1;
 
-    /* Horizontal/vertical sliding pieces */
-	uint64_t row_attack = occupancy_table_lookup(col, generate_row_occupancy_key(row, occupancy)) << (8*row); // row
-	uint64_t col_attack = occupancy_table_lookup(row, generate_col_occupancy_key(col, occupancy));
+    /* Check king */
+    if (get_king_attacks(square) & (attackers & board->pieces[King])) return 1;
 
-	col_attack = col_attack * attack_data.ruld[RULD_INDEX(0)]; // Multiply to convert row to col. Data is in rightmost column
-    col_attack = swap_uint64(col_attack); // Vertical flip by reversing
-    col_attack = (col_attack >> (7 - col)) & attack_data.col[col]; // Shift to appropriate position and isolate the resulting attack column
-
-	if((row_attack | col_attack) & (candidates & (board->pieces[Rook] | board->pieces[Queen]))){ return 1; }
-
-	/* Diagonal sliding pieces */
-    uint64_t ruld_attack = occupancy_table_lookup(col, generate_ruld_occupancy_key(square, occupancy));
-    ruld_attack = ((ruld_attack * attack_data.col[0]) & attack_data.ruld[RULD_INDEX(square)]); // Convert attack row to ruld diag, isolate bits
-
-    uint64_t lurd_attack = occupancy_table_lookup(col, generate_lurd_occupancy_key(square, occupancy));
-    lurd_attack = ((lurd_attack * attack_data.col[0]) & attack_data.lurd[LURD_INDEX(square)]); // Convert attack row to lurd diag, isolate bits
-
-	if((ruld_attack | lurd_attack) & (candidates & (board->pieces[Bishop] | board->pieces[Queen]))){ return 1; }
+    /* Check sliders */
+    if (get_rook_attacks(square, occupancy) & (attackers & (board->pieces[Rook] | board->pieces[Queen]))) return 1;
+    if (get_bishop_attacks(square, occupancy) & (attackers & (board->pieces[Bishop] | board->pieces[Queen]))) return 1;
 
     return 0;
-
 }
 
 char* piece_to_string(int piece){

@@ -14,7 +14,7 @@ int test_game_init(){
 	Game* game = create_game();
 	initialize_game(game);
 
-	int success = game->state.attack_from[G1] & U64_MASK(21);
+	int success = get_knight_attacks(G1) & U64_MASK(F3);
 
 	destroy_game(game);
 	return success;
@@ -34,7 +34,7 @@ int test_load_fen(){
 	}
 
 	success = success && (game->state.pieces[Pawn] == (U64_MASK(E4) | U64_MASK(E5) | U64_MASK(G4) | U64_MASK(H4)));
-	success = success && (game->state.attack_from[B5] == (uint64_t) 0b101000010000000000000001000000001010000000000000000);
+	success = success && (get_knight_attacks(B5) == (uint64_t) 0b101000010000000000000001000000001010000000000000000);
 	success = success && (game->state.pieces[White] == 0b1010000000000000000000000011000);
 	success = success && (game->state.pieces[Black] == 0b1000000000000000000000001001010000000000000000000000000000000);
 	
@@ -101,7 +101,7 @@ int test_unmake_move_round_trip(){
 
 	Move e4 = encode_move(E2, E4, &game->state);
 	make_move(game, e4);
-	unmake_move(game, e4, 0);
+	unmake_move(game, e4);
 
 	int success = memcmp(pieces_before, game->state.pieces, sizeof(pieces_before)) == 0;
 	success = success && (hash_before == game->state.zobrist_hash);
@@ -152,19 +152,19 @@ int main(){
 	int success = run_tests(test_cases, test_case_names, num_tests);
 
 	printf("====== MOVE TESTS ======\n");
-	success = success && move_tests();
+	success = move_tests() && success;
 
 	printf("====== ATTACK TESTS ======\n");
-	success = success && attack_tests();
+	success = attack_tests() && success;
 
 	printf("====== MOVE GEN TESTS ======\n");
-	success = success && move_gen_tests();
+	success = move_gen_tests() && success;
 
 	printf("====== SEARCH TESTS ======\n");
-	success = success && search_tests();
+	success = search_tests() && success;
 
 	printf("====== TRANSPOSITION TABLE TESTS ======\n");
-	success = success && transposition_table_tests();
+	success = transposition_table_tests() && success;
 
 	printf("======\n");
 	return success ? 0 : 1;

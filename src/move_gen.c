@@ -2,25 +2,63 @@
 #include "game.h"
 
 
+void generate_moves_from_bitboard(int src, uint64_t attack, MoveList* move_list, Game* game, int color){
+    Board* board = &game->state;
+    while(attack){
+        int dest = get_lsb_index(attack);
+        attack &= attack - 1;
+
+        if(board->pieces[color] & U64_MASK(dest)){
+            continue;
+        }
+
+        Move move = encode_move(src, dest, &game->state);
+        move_list_add(move_list, move);
+    }
+}
+
 void generate_knight_moves(MoveList* move_list, Game* game, int color){
     Board* board = &game->state;
     uint64_t knights = board->pieces[Knight] & board->pieces[color];
-    generate_moves(knights, move_list, game, color);
+    while(knights){
+        int src = get_lsb_index(knights);
+        knights &= knights - 1;
+        uint64_t attack = get_knight_attacks(src);
+        generate_moves_from_bitboard(src, attack, move_list, game, color);
+    }
 }
 void generate_bishop_moves(MoveList* move_list, Game* game, int color){
     Board* board = &game->state;
+    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
     uint64_t bishops = board->pieces[Bishop] & board->pieces[color];
-    generate_moves(bishops, move_list, game, color);
+    while(bishops){
+        int src = get_lsb_index(bishops);
+        bishops &= bishops - 1;
+        uint64_t attack = get_bishop_attacks(src, occupancy);
+        generate_moves_from_bitboard(src, attack, move_list, game, color);
+    }
 }
 void generate_rook_moves(MoveList* move_list, Game* game, int color){
     Board* board = &game->state;
+    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
     uint64_t rooks = board->pieces[Rook] & board->pieces[color];
-    generate_moves(rooks, move_list, game, color);
+    while(rooks){
+        int src = get_lsb_index(rooks);
+        rooks &= rooks - 1;
+        uint64_t attack = get_rook_attacks(src, occupancy);
+        generate_moves_from_bitboard(src, attack, move_list, game, color);
+    }
 }
 void generate_queen_moves(MoveList* move_list, Game* game, int color){
     Board* board = &game->state;
+    uint64_t occupancy = board->pieces[White] | board->pieces[Black];
     uint64_t queens = board->pieces[Queen] & board->pieces[color];
-    generate_moves(queens, move_list, game, color);
+    while(queens){
+        int src = get_lsb_index(queens);
+        queens &= queens - 1;
+        uint64_t attack = get_queen_attacks(src, occupancy);
+        generate_moves_from_bitboard(src, attack, move_list, game, color);
+    }
 }
 
 void generate_pawn_moves(MoveList* move_list, Game* game, int color){
@@ -77,21 +115,26 @@ void generate_pawn_moves(MoveList* move_list, Game* game, int color){
 void generate_king_moves(MoveList* move_list, Game* game, int color){
     Board* board = &game->state;
     uint64_t king = board->pieces[King] & board->pieces[color];
-    generate_moves(king, move_list, game, color);
+    if(king){
+        int src = get_lsb_index(king);
+        uint64_t attack = get_king_attacks(src);
+        generate_moves_from_bitboard(src, attack, move_list, game, color);
 
-    uint64_t occupied = board->pieces[White] | board->pieces[Black];
-    int king_pos = get_lsb_index(king);
+        // Castling
+        uint64_t occupied = board->pieces[White] | board->pieces[Black];
+        int king_pos = src;
 
-    if(!(occupied & ((king << 1) | (king << 2)))
-            && (board->pieces[color] & board->pieces[Rook] & (king<<3))){
-        Move move = king_pos | ((king_pos+2) << 6) | (King << 12) | (Kingside << 21);
-        move_list_add(move_list, move);
-    }
+        if(!(occupied & ((king << 1) | (king << 2)))
+                && (board->pieces[color] & board->pieces[Rook] & (king<<3))){
+            Move move = king_pos | ((king_pos+2) << 6) | (King << 12) | (Kingside << 21);
+            move_list_add(move_list, move);
+        }
 
-    if(!(occupied & ((king >> 1) | (king >> 2) | (king >> 3)))
-            && (board->pieces[color] & board->pieces[Rook] & (king >> 4))){
-        Move move = king_pos | ((king_pos-2) << 6) | (King << 12) | (Queenside << 21);
-        move_list_add(move_list, move);
+        if(!(occupied & ((king >> 1) | (king >> 2) | (king >> 3)))
+                && (board->pieces[color] & board->pieces[Rook] & (king >> 4))){
+            Move move = king_pos | ((king_pos-2) << 6) | (King << 12) | (Queenside << 21);
+            move_list_add(move_list, move);
+        }
     }
 }
 
@@ -108,28 +151,6 @@ void generate_all_moves(MoveList* move_list, Game* game, int color){
     generate_pawn_moves(move_list, game, color);
     generate_king_moves(move_list, game, color);
 
-}
-
-/* Generate moves from the attack_from bitboard */
-void generate_moves(uint64_t movers, MoveList* move_list, Game* game, int color){
-    Board* board = &game->state;
-    while(movers) {
-        int src = get_lsb_index(movers);
-        movers &= movers - 1;
-
-        uint64_t attack = board->attack_from[src];
-        while(attack){
-            int dest = get_lsb_index(attack);
-            attack &= attack - 1;
-
-            if(board->pieces[color] & U64_MASK(dest)){
-                continue;
-            }
-
-            Move move = encode_move(src, dest, &game->state);
-            move_list_add(move_list, move);
-        }
-    }
 }
 
 void filter_legal_moves(MoveList* move_list, Game* game){
