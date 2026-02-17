@@ -55,13 +55,14 @@ int is_legal_move(Game* game, Move move){
     }
 
     // Trial make move
-    make_move_on_state(state, move);
+    UndoInfo undo;
+    make_move_on_state(state, move, &undo);
     
     // Check if king is in check (from the perspective of the side that just moved)
     // side_to_move was flipped, so !state->side_to_move is the mover
     int in_check = square_attacked(state, state->king_sq[!state->side_to_move], state->side_to_move);
     
-    unmake_move_on_state(state, move);
+    unmake_move_on_state(state, move, &undo);
 
     return !in_check;
 }

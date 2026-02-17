@@ -8,17 +8,40 @@
 #include "move_gen.h"
 #include "attack_data.h"
 
+static int ensure_undo_capacity(Game* game, int required){
+	if(required <= game->undo_capacity){
+		return 1;
+	}
+
+	int new_capacity = game->undo_capacity > 0 ? game->undo_capacity : 512;
+	while(new_capacity < required){
+		new_capacity *= 2;
+	}
+
+	UndoInfo* new_stack = (UndoInfo*)realloc(game->undo_stack, new_capacity * sizeof(UndoInfo));
+	if(new_stack == NULL){
+		return 0;
+	}
+
+	game->undo_stack = new_stack;
+	game->undo_capacity = new_capacity;
+	return 1;
+}
+
 
 /* Create, initialize and return a Game. Also creates a Board and sets up the AttackData for this game. */
 Game* create_game(){
 	Game* game = calloc(1, sizeof(Game));
 	game->state.side_to_move = 1;
 	game->state.en_passant = -1;
+	game->state.halfmove_clock = 0;
 
 	game->state.castling_rights = 0b1111;
-	game->state.ply = 0;
 	game->move_history_capacity = 512;
 	game->move_history = (Move*) calloc(game->move_history_capacity, sizeof(Move));
+	game->undo_capacity = 512;
+	game->undo_stack = (UndoInfo*) calloc(game->undo_capacity, sizeof(UndoInfo));
+	game->game_ply = 0;
 
 	move_list_init(&game->legal_moves);
 
@@ -29,6 +52,7 @@ Game* create_game(){
 void destroy_game(Game* game){
 	if(!game) return;
 	free(game->move_history);
+	free(game->undo_stack);
 	free(game);
 }
 
@@ -38,7 +62,8 @@ void initialize_game(Game* game){
 	game->state.side_to_move = 1;
 	game->state.castling_rights = 0b1111;
 	game->state.en_passant = -1;
-	game->state.ply = 0;
+	game->state.halfmove_clock = 0;
+	game->game_ply = 0;
 	move_list_init(&game->legal_moves);
 	generate_legal_moves(game, game->state.side_to_move);
 }
@@ -161,7 +186,11 @@ int load_fen(Game* game, char* str){
 		game->state.en_passant = parse_square(fen_field[3]);
 	}
 
-	game->state.ply = 0;
+	game->state.halfmove_clock = 0;
+	if(fen_field[4]){
+		game->state.halfmove_clock = atoi(fen_field[4]);
+	}
+	game->game_ply = 0;
 
 	initialize_zobrist(game);
 
@@ -172,18 +201,26 @@ int load_fen(Game* game, char* str){
 
 
 void make_move(Game* game, Move move){
-	make_move_on_state(&game->state, move);
+	if(!ensure_undo_capacity(game, game->game_ply + 1)){
+		return;
+	}
+	make_move_on_state(&game->state, move, &game->undo_stack[game->game_ply]);
+	game->game_ply += 1;
 	move_list_init(&game->legal_moves);
 	generate_legal_moves(game, game->state.side_to_move);
 }
 
 void unmake_move(Game* game, Move move){
-	unmake_move_on_state(&game->state, move);
+	if(game->game_ply <= 0){
+		return;
+	}
+	game->game_ply -= 1;
+	unmake_move_on_state(&game->state, move, &game->undo_stack[game->game_ply]);
 	move_list_init(&game->legal_moves);
 	generate_legal_moves(game, game->state.side_to_move);
 }
 
-void make_move_on_state(BoardState* state, Move move){
+void make_move_on_state(BoardState* state, Move move, UndoInfo* undo){
 	int color = state->side_to_move;
 	int dest = get_move_dest(move);
 	int src = get_move_src(move);
@@ -191,12 +228,11 @@ void make_move_on_state(BoardState* state, Move move){
 	int capture = get_move_capture(move);
 	int special = get_move_special(move);
 
-	state->castling_history[state->ply] = state->castling_rights;
-	state->en_passant_history[state->ply] = state->en_passant;
-	state->zobrist_history[state->ply] = state->zobrist_hash;
-	uint8_t old_castling = state->castling_rights;
-	int old_en_passant = state->en_passant;
-	
+	undo->castling_rights = state->castling_rights;
+	undo->en_passant = state->en_passant;
+	undo->halfmove_clock = state->halfmove_clock;
+	undo->zobrist_hash = state->zobrist_hash;
+
 	int capture_square = dest;
 	if(capture && special == EnPassant){
 		capture_square = color ? dest - 8 : dest + 8;
@@ -269,6 +305,12 @@ void make_move_on_state(BoardState* state, Move move){
 		}
 	}
 
+	if(piece_type == Pawn || capture){
+		state->halfmove_clock = 0;
+	} else {
+		state->halfmove_clock += 1;
+	}
+
 	if(piece_type == King){
 		state->king_sq[color] = dest;
 		if(src == E1) state->castling_rights &= 0b0011;
@@ -280,10 +322,10 @@ void make_move_on_state(BoardState* state, Move move){
 		if(src == H8) state->castling_rights &= 0b1110;
 	}
 
-	state->zobrist_hash ^= zobrist_keys.castling_rights[old_castling];
+	state->zobrist_hash ^= zobrist_keys.castling_rights[undo->castling_rights];
 	state->zobrist_hash ^= zobrist_keys.castling_rights[state->castling_rights];
-	if(old_en_passant != -1){
-		state->zobrist_hash ^= zobrist_keys.en_passant_file[old_en_passant % 8];
+	if(undo->en_passant != -1){
+		state->zobrist_hash ^= zobrist_keys.en_passant_file[undo->en_passant % 8];
 	}
 	if(state->en_passant != -1){
 		state->zobrist_hash ^= zobrist_keys.en_passant_file[state->en_passant % 8];
@@ -291,22 +333,15 @@ void make_move_on_state(BoardState* state, Move move){
 	state->zobrist_hash ^= zobrist_keys.side_to_move;
 
 	state->side_to_move = !state->side_to_move;
-	state->ply += 1;
 }
 
-void unmake_move_on_state(BoardState* state, Move move){
-	if(state->ply <= 0){
-		return;
-	}
-
-	int index = state->ply - 1;
+void unmake_move_on_state(BoardState* state, Move move, UndoInfo* undo){
 	int dest = get_move_dest(move);
 	int src = get_move_src(move);
 	int piece_type = get_move_piece(move);
 	int capture = get_move_capture(move);
 	int special = get_move_special(move);
 
-	state->ply -= 1;
 	state->side_to_move = !state->side_to_move;
 	int color = state->side_to_move;
 
@@ -315,9 +350,10 @@ void unmake_move_on_state(BoardState* state, Move move){
 		capture_square = color ? dest - 8 : dest + 8;
 	}
 
-	state->castling_rights = state->castling_history[index];
-	state->en_passant = state->en_passant_history[index];
-	state->zobrist_hash = state->zobrist_history[index];
+	state->castling_rights = undo->castling_rights;
+	state->en_passant = undo->en_passant;
+	state->halfmove_clock = undo->halfmove_clock;
+	state->zobrist_hash = undo->zobrist_hash;
 
 	state->pieces[piece_type] &= ~U64_MASK(dest);
 	state->pieces[piece_type] |= U64_MASK(src);
