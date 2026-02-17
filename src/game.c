@@ -232,7 +232,6 @@ void make_move_on_state(BoardState* state, Move move, UndoInfo* undo){
 	undo->en_passant = state->en_passant;
 	undo->halfmove_clock = state->halfmove_clock;
 	undo->zobrist_hash = state->zobrist_hash;
-
 	int capture_square = dest;
 	if(capture && special == EnPassant){
 		capture_square = color ? dest - 8 : dest + 8;
