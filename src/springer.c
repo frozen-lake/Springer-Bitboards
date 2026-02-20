@@ -78,8 +78,14 @@ int main(){
     /* MAIN GAME LOOP */
     char move_buffer[16];
     while(1){
-        /* PLAYER TURN */
+        update_game_status(game);
         print_board(&game->state);
+        
+        if(game->game_status != ACTIVE){
+            break;
+        }
+
+        /* PLAYER TURN */
         printf("Enter move (%s): ", (game->state.side_to_move?"White":"Black"));
 
         memset(move_buffer, 0, 16);
@@ -119,6 +125,24 @@ int main(){
 
     }
 
+    printf("GAME OVER -- ");
+    switch(game->game_status){
+        case WHITE_WINS:
+            printf("WHITE WINS!\n");
+            break;
+        case BLACK_WINS:
+            printf("BLACK WINS!\n");
+            break;
+        case DRAW_STALEMATE:
+            printf("STALEMATE!\n");
+            break;
+        case DRAW_FIFTY_MOVE:
+            printf("DRAW BY FIFTY MOVE RULE.\n");
+            break;
+        case DRAW_INSUFFICIENT_MATERIAL:
+            printf("DRAW BY INSUFFICIENT MATERIAL.\n");
+            break;
+    }
 
 
     return 0;

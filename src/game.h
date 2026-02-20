@@ -8,6 +8,16 @@
 #define DEBUG_ERR 1
 #define DEBUG_PERF 1
 
+
+enum GameStatus {
+	ACTIVE,
+	BLACK_WINS,
+	WHITE_WINS,
+	DRAW_STALEMATE,
+	DRAW_FIFTY_MOVE,
+	DRAW_INSUFFICIENT_MATERIAL,
+};
+
 typedef struct Game Game;
 
 struct Game {
@@ -18,6 +28,7 @@ struct Game {
 	UndoInfo* undo_stack;
 	int undo_capacity;
 	int game_ply;
+	int game_status;
 };
 
 
@@ -28,6 +39,8 @@ Game* create_game();
 void destroy_game(Game* game);
 void initialize_game(Game* game);
 int load_fen(Game* game, char* str);
+void update_game_status(Game* game);
+int has_insufficient_material(BoardState* state);
 
 void make_move(Game* game, Move move);
 void unmake_move(Game* game, Move move);

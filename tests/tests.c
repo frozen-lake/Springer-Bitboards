@@ -3,6 +3,7 @@
 #include <string.h>
 #include "attack_and_move_tests.h"
 #include "move_gen_tests.h"
+#include "endgame_tests.h"
 #include "search_tests.h"
 #include "transposition_table_tests.h"
 #include "../src/game.h"
@@ -162,6 +163,9 @@ int main(){
 
 	printf("====== SEARCH TESTS ======\n");
 	success = search_tests() && success;
+
+	printf("====== ENDGAME TESTS ======\n");
+	success = endgame_tests() && success;
 
 	printf("====== TRANSPOSITION TABLE TESTS ======\n");
 	success = transposition_table_tests() && success;

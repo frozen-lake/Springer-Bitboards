@@ -199,6 +199,33 @@ int load_fen(Game* game, char* str){
 	return 1;
 }
 
+int has_insufficient_material(BoardState* state){
+	if(state->pieces[Pawn] || state->pieces[Rook] || state->pieces[Queen]){
+		return 0;
+	}
+
+	uint64_t minor_pieces = state->pieces[Knight] | state->pieces[Bishop];
+	int minor_count = __builtin_popcountll(minor_pieces);
+
+	return minor_count <= 1;
+}
+
+void update_game_status(Game* game){
+	game->game_status = ACTIVE;
+	if(game->state.halfmove_clock > 99){
+		game->game_status = DRAW_FIFTY_MOVE;
+	} else if(game->legal_moves.size == 0){
+		if(square_attacked(&game->state, game->state.king_sq[game->state.side_to_move], !game->state.side_to_move)){
+			game->game_status = BLACK_WINS + (1 - game->state.side_to_move); // Winner is opposite of side to move
+		} else {
+			game->game_status = DRAW_STALEMATE;
+		}
+	} else if(has_insufficient_material(&game->state)){
+		game->game_status = DRAW_INSUFFICIENT_MATERIAL;
+	}
+
+}
+
 
 void make_move(Game* game, Move move){
 	if(!ensure_undo_capacity(game, game->game_ply + 1)){

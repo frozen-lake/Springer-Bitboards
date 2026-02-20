@@ -10,7 +10,7 @@ int test_evaluation(){
     char* fen = "3rk3/2bp4/8/7N/5p2/5P2/52P/R3K3 w K - 0 2";
     int success = load_fen(game, fen);
 
-    int eval = evaluate(game, game->board);
+    int eval = evaluate(game, &game->state);
 
     success = success && (eval == 0);
 
