@@ -14,6 +14,206 @@ int get_move_capture(Move move){ return (move >> 15) & 0b111; }
 int get_move_promotion(Move move){ return (move >> 18) & 0b111; }
 int get_move_special(Move move){ return (move >> 21) & 0b11; }
 
+int move_to_algebraic(Game* game, Move move, char* out, int out_size){
+    int i = 0;
+    int src = get_move_src(move);
+    int dest = get_move_dest(move);
+    int piece = get_move_piece(move);
+    int special = get_move_special(move);
+    int capture = (get_move_capture(move) != 0) || (special == EnPassant);
+    int promotion = get_move_promotion(move);
+    char dest_file = (char)('a' + (dest % 8));
+    char dest_rank = (char)('1' + (dest / 8));
+    char piece_letter = '\0';
+    char promo = '\0';
+    int need_file_disambiguation = 0;
+    int need_rank_disambiguation = 0;
+    int found_same_file = 0;
+    int found_same_rank = 0;
+
+    if(out == NULL || out_size == 0){
+        return 0;
+    }
+
+    out[0] = '\0';
+
+    if(special == Kingside){
+        if(out_size < 4){
+            return 0;
+        }
+        out[0] = 'O';
+        out[1] = '-';
+        out[2] = 'O';
+        out[3] = '\0';
+        return 1;
+    }
+
+    if(special == Queenside){
+        if(out_size < 6){
+            return 0;
+        }
+        out[0] = 'O';
+        out[1] = '-';
+        out[2] = 'O';
+        out[3] = '-';
+        out[4] = 'O';
+        out[5] = '\0';
+        return 1;
+    }
+
+    switch(piece){
+        case Knight:
+            piece_letter = 'N';
+            break;
+        case Bishop:
+            piece_letter = 'B';
+            break;
+        case Rook:
+            piece_letter = 'R';
+            break;
+        case Queen:
+            piece_letter = 'Q';
+            break;
+        case King:
+            piece_letter = 'K';
+            break;
+        default:
+            break;
+    }
+
+    if(promotion != NO_PROMOTION){
+        switch(Pawn + promotion){
+            case Knight:
+                promo = 'N';
+                break;
+            case Bishop:
+                promo = 'B';
+                break;
+            case Rook:
+                promo = 'R';
+                break;
+            case Queen:
+                promo = 'Q';
+                break;
+            default:
+                return 0;
+        }
+    }
+
+    if(piece != Pawn && piece_letter == '\0'){
+        return 0;
+    }
+
+    if(game != NULL && piece != Pawn && piece != King){
+        for(int j = 0; j < game->legal_moves.size; j++){
+            Move other = game->legal_moves.moves[j];
+            if(other == move){
+                continue;
+            }
+            if(get_move_piece(other) != piece){
+                continue;
+            }
+            if(get_move_dest(other) != dest){
+                continue;
+            }
+
+            need_file_disambiguation = 1;
+            need_rank_disambiguation = 1;
+
+            if((get_move_src(other) % 8) == (src % 8)){
+                found_same_file = 1;
+            }
+            if((get_move_src(other) / 8) == (src / 8)){
+                found_same_rank = 1;
+            }
+        }
+
+        if(need_file_disambiguation || need_rank_disambiguation){
+            if(!found_same_file){
+                need_rank_disambiguation = 0;
+            } else if(!found_same_rank){
+                need_file_disambiguation = 0;
+            }
+        }
+    }
+
+    if(piece == Pawn){
+        if(capture){
+            if(out_size < 5){
+                return 0;
+            }
+            out[i++] = (char)('a' + (src % 8));
+            out[i++] = 'x';
+            out[i++] = dest_file;
+            out[i++] = dest_rank;
+
+            if(promotion != NO_PROMOTION){
+                if(out_size < 7){
+                    return 0;
+                }
+                out[i++] = '=';
+                out[i++] = promo;
+            }
+
+            out[i] = '\0';
+            return 1;
+        }
+
+        if(promotion != NO_PROMOTION){
+            if(out_size < 5){
+                return 0;
+            }
+            out[i++] = dest_file;
+            out[i++] = dest_rank;
+            out[i++] = '=';
+            out[i++] = promo;
+            out[i] = '\0';
+            return 1;
+        }
+
+        if(out_size < 3){
+            return 0;
+        }
+        out[i++] = dest_file;
+        out[i++] = dest_rank;
+        out[i] = '\0';
+        return 1;
+    }
+
+    if(capture){
+        if(out_size < 5 + need_file_disambiguation + need_rank_disambiguation){
+            return 0;
+        }
+        out[i++] = piece_letter;
+        if(need_file_disambiguation){
+            out[i++] = (char)('a' + (src % 8));
+        }
+        if(need_rank_disambiguation){
+            out[i++] = (char)('1' + (src / 8));
+        }
+        out[i++] = 'x';
+        out[i++] = dest_file;
+        out[i++] = dest_rank;
+        out[i] = '\0';
+        return 1;
+    }
+
+    if(out_size < 4 + need_file_disambiguation + need_rank_disambiguation){
+        return 0;
+    }
+    out[i++] = piece_letter;
+    if(need_file_disambiguation){
+        out[i++] = (char)('a' + (src % 8));
+    }
+    if(need_rank_disambiguation){
+        out[i++] = (char)('1' + (src / 8));
+    }
+    out[i++] = dest_file;
+    out[i++] = dest_rank;
+    out[i] = '\0';
+    return 1;
+}
+
 int is_legal_player_move(Game* game, Move move){
     for(int i=0; i<game->legal_moves.size; i++){
         if(move == game->legal_moves.moves[i]){
@@ -222,7 +422,7 @@ int parse_algebraic_move(char* input, Game* game) {
 
     /* Determine the piece and destination square */
     int i = 0;
-    if (isalpha(input[0]) && strchr("PNBRQKpnbrqk", input[0])) {
+    if (move_len >= 3 && isalpha(input[0]) && strchr("NBRQK", toupper(input[0]))) {
         piece = toupper(input[0]);
         i++;
     }

@@ -4,13 +4,87 @@
 #include "../src/search.h"
 
 
+int test_initialize_searchstate_null(){
+    int stop = 0;
+    return initialize_searchstate(NULL, NULL, 4, &stop) == 0;
+}
+
+int test_initialize_searchstate_defaults_and_clamp(){
+    SearchState state = (SearchState){0};
+    int stop = 0;
+
+    int success = initialize_searchstate(&state, NULL, 0, &stop);
+    success = success && (state.tt == NULL);
+    success = success && (state.nodes == 0);
+    success = success && (state.root_depth == 0);
+    success = success && (state.max_depth == MAX_SEARCH_PLY);
+    success = success && (state.stop == &stop);
+    success = success && (state.pv_length == 0);
+
+    success = success && initialize_searchstate(&state, NULL, MAX_SEARCH_PLY + 10, &stop);
+    success = success && (state.max_depth == MAX_SEARCH_PLY);
+
+    success = success && initialize_searchstate(&state, NULL, 12, &stop);
+    success = success && (state.max_depth == 12);
+
+    return success;
+}
+
+int test_reset_searchstate(){
+    SearchState state = (SearchState){0};
+    int stop = 0;
+
+    if(!initialize_searchstate(&state, NULL, 8, &stop)){
+        return 0;
+    }
+
+    state.nodes = 123;
+    state.root_depth = 5;
+    state.pv_length = 3;
+
+    reset_searchstate(&state);
+
+    int success = (state.nodes == 0);
+    success = success && (state.root_depth == 0);
+    success = success && (state.pv_length == 0);
+    success = success && (state.max_depth == 8);
+
+    return success;
+}
+
+int test_stop_helpers(){
+    SearchState state = (SearchState){0};
+    int stop = 0;
+
+    if(!initialize_searchstate(&state, NULL, 8, &stop)){
+        return 0;
+    }
+
+    int success = !is_search_stop_requested(&state);
+
+    request_search_stop(&state);
+    success = success && (stop == 1);
+    success = success && is_search_stop_requested(&state);
+
+    clear_search_stop(&state);
+    success = success && (stop == 0);
+    success = success && !is_search_stop_requested(&state);
+
+    request_search_stop(NULL);
+    clear_search_stop(NULL);
+    success = success && !is_search_stop_requested(NULL);
+
+    return success;
+}
+
+
 int test_evaluation(){
     Game* game = create_game();
 
     char* fen = "3rk3/2bp4/8/7N/5p2/5P2/52P/R3K3 w K - 0 2";
     int success = load_fen(game, fen);
 
-    int eval = evaluate(game, &game->state);
+    int eval = evaluate(game);
 
     success = success && (eval == 0);
 
@@ -19,15 +93,22 @@ int test_evaluation(){
 }
 
 int search_tests(){
-    int num_tests = 1;
+    int num_tests = 5;
 
 	int (*test_cases[num_tests])();
 	char* test_case_names[num_tests];
 
-    
-	test_cases[0] = test_evaluation;
+    test_cases[0] = test_initialize_searchstate_null;
+    test_cases[1] = test_initialize_searchstate_defaults_and_clamp;
+    test_cases[2] = test_reset_searchstate;
+    test_cases[3] = test_stop_helpers;
+    test_cases[4] = test_evaluation;
 
-	test_case_names[0] = "test_evaluation";
+    test_case_names[0] = "test_initialize_searchstate_null";
+    test_case_names[1] = "test_initialize_searchstate_defaults_and_clamp";
+    test_case_names[2] = "test_reset_searchstate";
+    test_case_names[3] = "test_stop_helpers";
+    test_case_names[4] = "test_evaluation";
 
     return run_tests(test_cases, test_case_names, num_tests);
 }

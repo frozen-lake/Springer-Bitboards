@@ -3,6 +3,7 @@
 #include "attack_data.h"
 #include "springer.h"
 #include "move_gen.h"
+#include "search.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,6 +54,12 @@ int main(){
 	initialize_attack_data();
 
     Game* game = create_game();
+    TranspositionTable search_tt = (TranspositionTable){0};
+    SearchState search_state = (SearchState){0};
+    int search_stop = 0;
+
+    table_init(&search_tt);
+    initialize_searchstate(&search_state, &search_tt, 3, &search_stop);
 
 
     print_options();
@@ -111,18 +118,23 @@ int main(){
 
 
         /* AI TURN */
-        
-        /*
-        move = find_move(game);
-        if(is_legal_player_move(game, move)){
-            printf("\n<--%s PLAYED: %s-->\n", (game->state.side_to_move?"WHITE":"BLACK"), move_buffer);
-            make_move(game, move); 
+        move = search_best_move(game, &search_state);
+        if(move != 0 && is_legal_player_move(game, move)){
+            char algebraic[16];
+            printf("\n<--%s PLAYED: ", (game->state.side_to_move?"WHITE":"BLACK"));
+            if(move_to_algebraic(game, move, algebraic, sizeof(algebraic))){
+                printf("%s", algebraic);
+            } else {
+                print_move(move);
+            }
+            printf("-->\n");
+            make_move(game, move);
         } else {
-            fprintf(stderr, "\nEXCEPTION: ILLEGAL AI MOVE MOVE\n");
+            fprintf(stderr, "\nEXCEPTION: ILLEGAL OR EMPTY AI MOVE\n");
+            table_free(&search_tt);
             destroy_game(game);
             return -1;
         }
-        */
 
     }
 
@@ -144,6 +156,9 @@ int main(){
             printf("DRAW BY INSUFFICIENT MATERIAL.\n");
             break;
     }
+
+    table_free(&search_tt);
+    destroy_game(game);
 
 
     return 0;
