@@ -26,8 +26,8 @@ typedef struct {
 
 #endif
 
-void table_add(TranspositionTable* table, uint64_t key, Move move, int score, int depth, int flag);
-void table_clear(TranspositionTable* table);
+void tt_add(TranspositionTable* table, uint64_t key, Move move, int score, int depth, int flag);
+void tt_clear(TranspositionTable* table);
 TranspositionTableEntry* table_get(TranspositionTable* table, uint64_t key);
-void table_init(TranspositionTable* table);
-void table_free(TranspositionTable* table);
+void tt_init(TranspositionTable* table);
+void tt_free(TranspositionTable* table);

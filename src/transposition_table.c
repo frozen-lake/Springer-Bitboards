@@ -4,7 +4,7 @@
 #include "../src/transposition_table.h"
 
 
-void table_add(TranspositionTable* table, uint64_t key, Move move, int score, int depth, int flag){
+void tt_add(TranspositionTable* table, uint64_t key, Move move, int score, int depth, int flag){
     int index = key & (table->size - 1);
 
     TranspositionTableEntry* entry = &table->entries[index];
@@ -28,12 +28,12 @@ TranspositionTableEntry* table_get(TranspositionTable* table, uint64_t key){
     return NULL;
 }
 
-void table_clear(TranspositionTable* table){
+void tt_clear(TranspositionTable* table){
     memset(table->entries, 0, (table->size * sizeof(TranspositionTableEntry)));
     table->age = 0;
 }
 
-void table_init(TranspositionTable* table){
+void tt_init(TranspositionTable* table){
     table->entries = (TranspositionTableEntry*) calloc(TT_ENTRIES, sizeof(TranspositionTableEntry));
     if(table->entries == NULL){
         table->size = 0;
@@ -43,7 +43,7 @@ void table_init(TranspositionTable* table){
     table->age = 0;
 }
 
-void table_free(TranspositionTable* table){
+void tt_free(TranspositionTable* table){
     if(table->entries){
         free(table->entries);
         table->entries = NULL;

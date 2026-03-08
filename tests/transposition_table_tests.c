@@ -5,18 +5,18 @@
 int test_create_table(){
 	TranspositionTable table = (TranspositionTable){0};
 
-	table_init(&table);
+	tt_init(&table);
 
 	int success = (table.size == TT_ENTRIES) && (table.entries != NULL);
 	if(table.entries != NULL){
-		table_free(&table);
+		tt_free(&table);
 	}
 	return success;
 }  
 
 int test_add_get_entry(){
 	TranspositionTable table = (TranspositionTable){0};
-	table_init(&table);
+	tt_init(&table);
 
 	uint64_t key = 0x1234ULL;
 	Move move = (Move)(A2 | (A4 << 6) | (Pawn << 12));
@@ -24,7 +24,7 @@ int test_add_get_entry(){
 	int depth = 5;
 	int flag = TT_EXACT;
 
-	table_add(&table, key, move, score, depth, flag);
+	tt_add(&table, key, move, score, depth, flag);
 	TranspositionTableEntry* entry = table_get(&table, key);
 
 	int success = (entry != NULL)
@@ -34,22 +34,22 @@ int test_add_get_entry(){
 		&& (entry->depth == depth)
 		&& (entry->flag == flag);
 
-	table_free(&table);
+	tt_free(&table);
 	return success;
 }
 
 int test_clear_table(){
 	TranspositionTable table = (TranspositionTable){0};
-	table_init(&table);
+	tt_init(&table);
 
 	uint64_t key = 0xABCDEFULL;
-	table_add(&table, key, 0, 1, 1, TT_LOWER);
-	table_clear(&table);
+	tt_add(&table, key, 0, 1, 1, TT_LOWER);
+	tt_clear(&table);
 
 	TranspositionTableEntry* entry = table_get(&table, key);
 	int success = (entry == NULL);
 
-	table_free(&table);
+	tt_free(&table);
 	return success;
 }
 

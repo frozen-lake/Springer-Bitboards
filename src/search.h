@@ -8,9 +8,23 @@
 #define MATE_SCORE 49000
 
 typedef struct SearchState SearchState;
+typedef struct SearchTrace SearchTrace;
+
+struct SearchTrace {
+    Move best_move;
+    int best_score;
+    int depth;
+    int nodes;
+    Move pv_line[MAX_SEARCH_PLY];
+    int pv_length;
+    Move root_moves[MAX_MOVES];
+    int root_scores[MAX_MOVES];
+    int num_root_moves;
+};
 
 struct SearchState {
     TranspositionTable* tt;
+    SearchTrace* trace;
     int nodes;
     int root_depth;
     int max_depth;
@@ -26,6 +40,9 @@ int alpha_beta(SearchState* search_state, Game* game, int alpha, int beta, int d
 int quiesce(SearchState* search_state, Game* game, int alpha, int beta);
 
 int initialize_searchstate(SearchState* search_state, TranspositionTable* tt, int max_depth, int* stop);
+void destroy_searchstate(SearchState* search_state);
+void initialize_searchtrace(SearchTrace* trace);
+void print_searchtrace(Game* game, SearchState* search_state);
 void reset_searchstate(SearchState* search_state);
 void request_search_stop(SearchState* search_state);
 void clear_search_stop(SearchState* search_state);

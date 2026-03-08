@@ -58,7 +58,7 @@ int main(){
     SearchState search_state = (SearchState){0};
     int search_stop = 0;
 
-    table_init(&search_tt);
+    tt_init(&search_tt);
     initialize_searchstate(&search_state, &search_tt, 3, &search_stop);
 
 
@@ -106,13 +106,18 @@ int main(){
             if(move_buffer[i] == '\n'){ move_buffer[i] = '\0'; }
         }
 
+        if(strcmp(move_buffer, "debug") == 0){
+            print_searchtrace(game, &search_state);
+            continue;
+        }
+
         Move move = parse_algebraic_move(move_buffer, game);
 
         if(is_legal_player_move(game, move)){
-            printf("\n<--%s PLAYED: %s-->\n", (game->state.side_to_move?"WHITE":"BLACK"), move_buffer);
+            printf("<--%s PLAYED: %s-->\n", (game->state.side_to_move?"WHITE":"BLACK"), move_buffer);
             make_move(game, move); 
         } else {
-            printf("\n<--ILLEGAL MOVE: %s-->\n", move_buffer);
+            printf("<--ILLEGAL MOVE: %s-->\n", move_buffer);
             continue;
         }
 
@@ -121,7 +126,7 @@ int main(){
         move = search_best_move(game, &search_state);
         if(move != 0 && is_legal_player_move(game, move)){
             char algebraic[16];
-            printf("\n<--%s PLAYED: ", (game->state.side_to_move?"WHITE":"BLACK"));
+            printf("<--%s PLAYED: ", (game->state.side_to_move?"WHITE":"BLACK"));
             if(move_to_algebraic(game, move, algebraic, sizeof(algebraic))){
                 printf("%s", algebraic);
             } else {
@@ -131,7 +136,8 @@ int main(){
             make_move(game, move);
         } else {
             fprintf(stderr, "\nEXCEPTION: ILLEGAL OR EMPTY AI MOVE\n");
-            table_free(&search_tt);
+            destroy_searchstate(&search_state);
+            tt_free(&search_tt);
             destroy_game(game);
             return -1;
         }
@@ -157,7 +163,8 @@ int main(){
             break;
     }
 
-    table_free(&search_tt);
+    destroy_searchstate(&search_state);
+    tt_free(&search_tt);
     destroy_game(game);
 
 
